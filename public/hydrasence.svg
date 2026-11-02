@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="_Слой_1" data-name="Слой 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 810">
+  <defs>
+    <style>
+      .cls-1 {
+        font-size: 80px;
+      }
+
+      .cls-1, .cls-2 {
+        fill: #00a7b5;
+        font-family: Montserrat-Bold, Montserrat;
+        font-weight: 700;
+      }
+
+      .cls-2 {
+        font-size: 36px;
+      }
+    </style>
+  </defs>
+  <text class="cls-1" transform="translate(480 428.98)"><tspan x="0" y="0">Hydrasence</tspan></text>
+  <text class="cls-2" transform="translate(957.04 395.62)"><tspan x="0" y="0">TM</tspan></text>
+</svg>

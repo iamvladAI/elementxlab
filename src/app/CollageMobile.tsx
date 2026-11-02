@@ -18,11 +18,11 @@ export const CollageMobile = () => {
 
   const items = [
     { type: 'video', src: '/-P28vNB0ww8gJAHythAA_Dropshot.mp4' },
-    { type: 'image', src: '/opt/carousel_4.webp' }, 
-    { type: 'image', src: '/opt/carousel_2.webp' }, 
-    { type: 'image', src: '/opt/carousel_3.webp' }, 
-    { type: 'image', src: '/opt/carousel_1.webp' }, 
-    { type: 'image', src: '/opt/carousel_5.webp' }, 
+    { type: 'image', src: '/carousel_4.jpg' }, 
+    { type: 'image', src: '/carousel_2.jpg' }, 
+    { type: 'image', src: '/carousel_3.jpg' }, 
+    { type: 'image', src: '/carousel_1.png' }, 
+    { type: 'image', src: '/carousel_5.jpg' }, 
   ];
 
   return (

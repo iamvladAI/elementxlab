@@ -324,7 +324,7 @@ export default function ContactPage() {
                       >
                         <div className="w-full aspect-square rounded-[16px] overflow-hidden bg-zinc-800 mb-2.5">
                           <img
-                            src="/opt/avatar.webp"
+                            src="/avatar.png"
                             alt="Олександр Гончар"
                             className="w-full h-full object-cover"
                           />
@@ -342,7 +342,7 @@ export default function ContactPage() {
                   </AnimatePresence>
 
                   <div className="w-10 h-10 rounded-full overflow-hidden shrink-0 ring-2 ring-transparent group-hover:ring-white/40 transition-all duration-300">
-                    <img src="/opt/avatar.webp" alt="Олександр Гончар" className="w-full h-full object-cover" />
+                    <img src="/avatar.png" alt="Олександр Гончар" className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <div className="font-bold text-white text-[14px]">Олександр Гончар</div>

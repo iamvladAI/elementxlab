@@ -51,40 +51,36 @@ const products = [
       'Гелі для вмивання', 'Маски', 'Зволожуючі місти', 'Тонери', 
       'Блиски для губ', 'Тінти', 'Бальзами для губ', 'Точкові засоби'
     ],
-    is3D: true, 
-    videoFolder: 'patch_video',
+    videoSrc: '/bottle_face.mp4',
+    poster: '/bottle_face_poster.webp',
     totalFrames: 200,
-    staticImage: null,
     scrollMap: [0, 0.20, 0.20, 0.38]
   },
   {
     id: 'hair',
     title: 'Для волосся',
     tags: ['Шампуні', 'Бальзами', 'Маски для волосся', 'Сироватки для кінчиків', 'Термозахист', 'Пілінги для шкіри голови', 'Сухі шампуні', 'Олії'],
-    is3D: true,
-    videoFolder: 'for_head_video',
+    videoSrc: '/bottle_hair.mp4',
+    poster: '/bottle_hair_poster.webp',
     totalFrames: 180,
-    staticImage: null, 
     scrollMap: [0.18, 0.37, 0.37, 0.56]
   },
   {
     id: 'body',
     title: 'Для тіла',
     tags: ['Гелі для душу', 'Скраби для тіла', 'Лосьйони', 'Батери', 'Олії для тіла', 'Креми для рук', 'Антицелюлітні засоби', 'Сіль для ванн'],
-    is3D: true,
-    videoFolder: 'cream_video',
+    videoSrc: '/bottle_body.mp4',
+    poster: '/bottle_body_poster.webp',
     totalFrames: 180,
-    staticImage: null,
     scrollMap: [0.40, 0.59, 0.59, 0.78]
   },
   {
     id: 'perfume',
     title: 'Парфуми',
     tags: ['Парфумована вода', 'Туалетна вода', 'Тверді парфуми', 'Місти для тіла', 'Аромадифузори для дому', 'Спреї'],
-    is3D: true,
-    videoFolder: 'parfume_video/parfume',
-    totalFrames: 180,
-    staticImage: null,
+    videoSrc: '/bottle_perfume.mp4',
+    poster: '/bottle_perfume_poster.webp',
+    totalFrames: 145,
     scrollMap: [0.62, 0.96, 1.0, 1.0] 
   }
 ];
@@ -221,22 +217,18 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
   index: number 
 }) {
   const [inStart, inEnd, outStart, outEnd] = product.scrollMap;
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const imagesRef = useRef<HTMLImageElement[]>([]);
-  const lastDrawnFrameRef = useRef<number>(-1);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoReadyRef = useRef(false);
 
-  // ОБЪЕДИНЕННАЯ ЛОГИКА ДЛЯ ИДЕАЛЬНОЙ СИНХРОНИЗАЦИИ
-  // Используем ОДИН И ТОТ ЖЕ scrollSource для всех банок, чтобы их скорости и тайминги ИДЕАЛЬНО совпадали!
   const scrollSource = earlyScroll;
 
-  // Отзывчивая кривая с мгновенным откликом на движение тачпада (без «вязкого» старта)
   const smoothStep = (t: number) => {
     const c = Math.max(0, Math.min(1, t));
     const s = c * c * (3 - 2 * c);
     return 0.45 * c + 0.55 * s;
   };
 
-  // КАРТИНКА: позиция берётся с общей ленты — баночки идут друг за другом с шагом BOTTLE_GAP и не наезжают
+  // ПОЗИЦИЯ БАНОЧКИ: общая лента, шаг BOTTLE_GAP, без наезда
   const yImage = useTransform(scrollSource, (p) => {
     const y = Math.max(-140, Math.min(140, bottleY(p, index)));
     return `${y}vh`;
@@ -247,14 +239,13 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
     return y < -135 || y > 135 ? 0 : 1;
   });
 
-  // ТЕКСТ: привязан к положению своей баночки (появляется, когда баночка доехала, и уходит вместе с ней)
+  // ТЕКСТ: привязан к баночке
   const tTextInStart = 0.02;
   const tTextInEnd = 0.14;
 
   const yText = useTransform(scrollSource, (p) => {
     const y = bottleY(p, index);
     if (index === 0 && y >= 0) {
-      // Первая баночка уже на экране с самого начала — текст плавно выезжает по скроллу
       const t = smoothStep((p - tTextInStart) / (tTextInEnd - tTextInStart));
       return `${14 - 12 * t}vh`;
     }
@@ -269,85 +260,59 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
     return textOpacityFromY(y);
   });
 
-  // АНИМАЦИЯ КАДРОВ: проигрывается пока баночка подъезжает снизу к центру и заканчивается ровно в центре
-  const firstFrame = product.id === 'perfume' ? 36 : 1;
-  const lastFrame = product.totalFrames || (product.id === 'face' ? 200 : 180);
-  const frameFloat = useTransform(scrollSource, (p) => {
+  // ВИДЕО-СКРАБИНГ (1-в-1 как у Apple через blob: в оперативной памяти + keyframe на каждом кадре):
+  const videoDuration = product.totalFrames / 30; // секунды (30fps)
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
+    const markReady = () => {
+      videoReadyRef.current = true;
+    };
+    if (video.readyState >= 1) markReady();
+    video.addEventListener('loadedmetadata', markReady);
+    video.addEventListener('loadeddata', markReady);
+
+    // Загружаем MP4 целиком в RAM как blob: URL (как на сайте Apple),
+    // чтобы при скролле браузер мгновенно брал кадры из памяти без сетевых подгрузок
+    fetch(product.videoSrc)
+      .then((res) => res.blob())
+      .then((blob) => {
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        video.src = objectUrl;
+        video.load();
+      })
+      .catch(() => {
+        if (!cancelled) video.src = product.videoSrc;
+      });
+
+    return () => {
+      cancelled = true;
+      video.removeEventListener('loadedmetadata', markReady);
+      video.removeEventListener('loadeddata', markReady);
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [product.videoSrc]);
+
+  useMotionValueEvent(scrollSource, "change", (p) => {
+    const video = videoRef.current;
+    if (!video || !videoReadyRef.current) return;
+
     let t: number;
     if (index === 0) {
       t = p / CENTER_KNOTS[0];
     } else {
       const y = bottleY(p, index);
-      t = (95 - y) / 95; // от y = 95vh (въезд снизу) до y = 0 (центр)
+      t = (95 - y) / 95;
     }
     t = Math.max(0, Math.min(1, t));
-    return firstFrame + (lastFrame - firstFrame) * t;
-  });
-
-  const drawFrame = (frameNum: number) => {
-    const clamped = Math.max(firstFrame, Math.min(lastFrame, frameNum));
-    if (clamped === lastDrawnFrameRef.current) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const img = imagesRef.current[clamped];
-    if (!img || !img.complete || img.naturalWidth === 0) return;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    lastDrawnFrameRef.current = clamped;
-  };
-
-  // Предзагрузка и сохранение ссылок на кадры в памяти (последовательно по индексу банки),
-  // чтобы сборщик мусора не выгружал текстуры и не вызывал фризы при переходе между банками
-  useEffect(() => {
-    if (!product.is3D) return;
-    let cancelled = false;
-    const arr: HTMLImageElement[] = new Array(lastFrame + 1);
-    imagesRef.current = arr;
-
-    const startDelay = 400 + index * 350;
-    const timer = setTimeout(() => {
-      if (cancelled) return;
-      for (let i = firstFrame; i <= lastFrame; i++) {
-        const img = new Image();
-        img.decoding = 'async';
-        img.src = `/${product.videoFolder}/${String(i).padStart(4, '0')}.png`;
-        if (i === firstFrame) {
-          img.onload = () => {
-            if (!cancelled) drawFrame(firstFrame);
-          };
-        }
-        arr[i] = img;
-      }
-    }, startDelay);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [product.is3D, product.videoFolder, firstFrame, lastFrame, index]);
-
-  // Обновляем canvas напрямую без вызовов setState (ноль ререндеров React при скролле)
-  useMotionValueEvent(frameFloat, "change", (latest) => {
-    if (product.is3D) {
-      drawFrame(Math.round(latest));
-    }
-  });
-
-  // Когда секция банки приближается по скроллу, заранее декодируем первые кадры в GPU
-  const predecodedRef = useRef(false);
-  useMotionValueEvent(scrollSource, "change", (p) => {
-    if (!predecodedRef.current && p >= Math.max(0, inStart - 0.18) && p <= outEnd) {
-      predecodedRef.current = true;
-      const arr = imagesRef.current;
-      for (let i = firstFrame; i <= lastFrame; i++) {
-        const img = arr[i];
-        if (img && img.complete && typeof img.decode === 'function') {
-          img.decode().catch(() => {});
-        }
-      }
+    const targetTime = t * videoDuration;
+    if (Math.abs(video.currentTime - targetTime) > 0.01) {
+      video.currentTime = targetTime;
     }
   });
 
@@ -355,7 +320,7 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
     <motion.div 
       className="absolute inset-0 flex flex-row items-center justify-center px-4 md:px-10 pointer-events-none"
     >
-      {/* ЛЕВАЯ ЧАСТЬ: Текст списком (сдвинут вправо) */}
+      {/* ЛЕВАЯ ЧАСТЬ: Текст */}
       <motion.div 
         className="w-1/2 flex flex-col items-start gap-3 pl-[8vw] md:pl-[12vw] z-30 will-change-transform"
         style={{ y: yText, opacity: opacityText }}
@@ -364,7 +329,6 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
           {product.title}
         </h2>
         
-        {/* Чистый список в 2 столбика с плотным прилеганием */}
         <ul className="grid grid-cols-[auto_auto] gap-x-6 md:gap-x-10 gap-y-2 mt-2 w-max">
           {product.tags.map((tag: string) => (
             <li 
@@ -377,37 +341,31 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
         </ul>
       </motion.div>
 
-      {/* ПРАВАЯ ЧАСТЬ: Огромная Картинка/3D на аппаратном Canvas */}
+      {/* ПРАВАЯ ЧАСТЬ: Видео с аппаратным декодированием (как на apple.com) */}
       <motion.div 
         className="w-1/2 flex items-center justify-center relative z-20 mb-[10vh] will-change-transform"
         style={{ y: yImage, opacity: opacityImage }}
       >
-        {product.is3D ? (
-          <canvas
-            ref={canvasRef}
-            width={1440}
-            height={810}
-            className={`w-[140%] max-w-[800px] xl:max-w-[1000px] origin-center object-contain drop-shadow-2xl translate-x-[-10%] ${
-              product.id === 'face'
-                ? 'scale-[1.0] md:scale-[1.12]'
-                : product.id === 'perfume'
-                ? 'scale-[1.08] md:scale-[1.2]'
-                : product.id === 'body'
-                ? 'scale-[1.15] md:scale-[1.3]'
-                : product.id === 'hair'
-                ? 'scale-[1.22] md:scale-[1.4]'
-                : 'scale-[1.3] md:scale-[1.5]'
-            } ${
-              product.id === 'hair' ? 'translate-y-[8%]' : ''
-            }`}
-          />
-        ) : (
-          <img 
-            src={product.staticImage} 
-            alt={product.title}
-            className="w-[140%] max-w-[800px] xl:max-w-[1000px] scale-[1.3] md:scale-[1.5] origin-center object-contain drop-shadow-2xl translate-x-[-10%]"
-          />
-        )}
+        <video
+          ref={videoRef}
+          poster={product.poster}
+          muted
+          playsInline
+          preload="auto"
+          className={`w-[140%] max-w-[800px] xl:max-w-[1000px] origin-center object-contain translate-x-[-10%] ${
+            product.id === 'face'
+              ? 'scale-[1.0] md:scale-[1.12]'
+              : product.id === 'perfume'
+              ? 'scale-[1.08] md:scale-[1.2]'
+              : product.id === 'body'
+              ? 'scale-[1.15] md:scale-[1.3]'
+              : product.id === 'hair'
+              ? 'scale-[1.22] md:scale-[1.4]'
+              : 'scale-[1.3] md:scale-[1.5]'
+          } ${
+            product.id === 'hair' ? 'translate-y-[8%]' : ''
+          }`}
+        />
       </motion.div>
     </motion.div>
   );

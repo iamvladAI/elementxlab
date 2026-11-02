@@ -145,7 +145,7 @@ export default function BrandsAppleScrollSection({ waveShift = 0 }: { waveShift?
         >
           {/* Склеенное композитное фото брендов (Replique + Mermade + Hydrasence) */}
           <img
-            src="/brands_composite.jpg"
+            src="/opt/brands_composite.webp"
             alt="Наші бренди — Replique, Mermade, Hydrasence"
             className="absolute inset-0 w-full h-full object-cover object-center select-none pointer-events-none"
           />

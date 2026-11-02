@@ -4,7 +4,7 @@ import HeroImageSequence from "./HeroImageSequence";
 
 const USE_3D_HERO = false;
 
-// ПЕРЕКЛЮЧАТЕЛЬ ЗАСТАВКИ: "photo" — статичное фото (/0005.png) | "video" — анимация 200 кадров (/scene_first)
+// ПЕРЕКЛЮЧАТЕЛЬ ЗАСТАВКИ: "photo" — статичное фото (/opt/0005.webp) | "video" — анимация 200 кадров (/scene_first)
 const HERO_MODE: "photo" | "video" = "video";
 
 import AppleScrollSection from './AppleScrollSection';
@@ -87,7 +87,7 @@ const FORMULA_CATEGORIES = [
   {
     id: 'face',
     title: 'Для обличчя',
-    img: '/face.png',
+    img: '/opt/face.webp',
     x: '-30vw',
     y: '-8vh',
     initialX: '30vw',
@@ -101,7 +101,7 @@ const FORMULA_CATEGORIES = [
   {
     id: 'hair',
     title: 'Для волосся',
-    img: '/hair.png',
+    img: '/opt/hair.webp',
     x: '-8.5vw',
     y: '2vh',
     initialX: '10vw',
@@ -115,7 +115,7 @@ const FORMULA_CATEGORIES = [
   {
     id: 'body',
     title: 'Для тіла',
-    img: '/body.png',
+    img: '/opt/body.webp',
     x: '10vw',
     y: '2vh',
     initialX: '-10vw',
@@ -129,7 +129,7 @@ const FORMULA_CATEGORIES = [
   {
     id: 'parfume',
     title: 'Парфуми',
-    img: '/parfume.png',
+    img: '/opt/parfume.webp',
     x: '30vw',
     y: '-8vh',
     initialX: '-30vw',
@@ -480,6 +480,7 @@ export default function Home() {
               <img
                 src="/0005.png"
                 alt="Element X Lab"
+                fetchPriority="high"
                 onLoad={() => setHeroReady(true)}
                 className="w-full h-full object-cover object-center select-none pointer-events-none"
               />
@@ -883,13 +884,13 @@ const ReviewsAssembly = ({ phaseOffset3 }: { phaseOffset3: number }) => {
             {[1, 2, 3, 4].map((blockIdx) => (
               <div key={blockIdx} className="marquee-content gap-12 md:gap-24 pr-12 md:pr-24">
                 {[
-                  "/eva.png",       // Короткий
-                  "/meteora.png",   // Длинный
-                  "/lovit.png",     // Короткий
-                  "/avrora.png",    // Длинный
-                  "/makeup.png",    // Короткий (квадрат)
-                  "/topbeauty.png", // Длинный
-                  "/joinup.png",    // Длинный
+                  "/opt/eva.webp",       // Короткий
+                  "/opt/meteora.webp",   // Длинный
+                  "/opt/lovit.webp",     // Короткий
+                  "/opt/avrora.webp",    // Длинный
+                  "/opt/makeup.webp",    // Короткий (квадрат)
+                  "/opt/topbeauty.webp", // Длинный
+                  "/opt/joinup.webp",    // Длинный
                 ].map((logo, i) => (
                   <img 
                     key={i} 
@@ -989,7 +990,7 @@ const ReviewsAssembly = ({ phaseOffset3 }: { phaseOffset3: number }) => {
               "Від імені компанії хочу подякувати вам за співпрацю! Ми цінуємо ваше розуміння ринку і системний підхід до виконання задач. Окремо дякую за те, що ми на одній хвилі в плані розвитку і трендів. Дуже рада мати змогу працювати з вами."
             </p>
             <div className="flex items-center gap-4">
-              <img src="/avrora-logo.jpg" alt="Avrora" className="w-12 h-12 md:w-14 md:h-14 object-cover rounded-2xl shadow-sm border border-zinc-200" />
+              <img src="/opt/avrora-logo.webp" alt="Avrora" className="w-12 h-12 md:w-14 md:h-14 object-cover rounded-2xl shadow-sm border border-zinc-200" />
               <div className="flex flex-col text-left">
                 <span className="font-bold text-black text-base md:text-lg">Дарина Малиновська</span>
                 <span className="text-zinc-600 text-xs md:text-sm">Avrora</span>
@@ -1081,7 +1082,7 @@ const ReviewsAssembly = ({ phaseOffset3 }: { phaseOffset3: number }) => {
           whileInView={{ opacity: 1, filter: 'blur(0px)' }}
           viewport={{ once: true, amount: 0.4 }}
           transition={{ duration: 1, delay: 0.2, ease: "easeOut" }}
-          src="/girl2.png" 
+          src="/opt/girl2.webp" 
           alt="Girl" 
           className="w-[85vw] md:w-[35vw] max-w-[600px] h-auto object-contain pointer-events-none self-end" 
           style={{ marginBottom: '-2px' }} 

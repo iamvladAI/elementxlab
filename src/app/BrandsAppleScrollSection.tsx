@@ -143,27 +143,48 @@ export default function BrandsAppleScrollSection({ waveShift = 0 }: { waveShift?
           }}
           className="relative overflow-hidden shadow-2xl flex items-center justify-center bg-zinc-950 will-change-[width,height,border-radius]"
         >
-          {/* Склеенное композитное фото брендов (Replique + Mermade + Hydrasence) */}
-          <img
-            src="/brands_composite.jpg"
-            alt="Наші бренди — Replique, Mermade, Hydrasence"
-            className="absolute inset-0 w-full h-full object-cover object-center select-none pointer-events-none"
-          />
+          {/* 3 независимые колонки: в каждой свой собственный кадр 1080×1800 и своё затемнение,
+              поэтому на любом соотношении сторон (16:9, 16:10, 4:3, 21:9) граница фото и граница затемнения совпадают пиксель-в-пиксель */}
+          <div className="absolute inset-0 grid grid-cols-3 pointer-events-none z-0">
+            {BRANDS.map((brand, idx) => {
+              const panelX = idx * 1080;
+              const clipId = `brand-panel-clip-${brand.id}`;
+              return (
+                <div key={brand.id} className="relative w-full h-full overflow-hidden">
+                  <svg
+                    viewBox={`${panelX} 0 1080 1800`}
+                    preserveAspectRatio="xMidYMid slice"
+                    className="absolute inset-0 w-full h-full select-none pointer-events-none block"
+                  >
+                    <defs>
+                      <clipPath id={clipId}>
+                        <rect x={panelX} y={0} width={1080} height={1800} />
+                      </clipPath>
+                    </defs>
+                    <image
+                      href="/brands_composite.jpg"
+                      width={3240}
+                      height={1800}
+                      clipPath={`url(#${clipId})`}
+                      preserveAspectRatio="none"
+                    />
+                  </svg>
 
-          {/* Затемняющий оверлей с кинематографичным вертикальным градиентом */}
-          <motion.div
-            style={{ opacity: darkOverlay }}
-            className="absolute inset-0 grid grid-cols-3 pointer-events-none z-10"
-          >
-            {BRANDS.map((brand, idx) => (
-              <div
-                key={brand.id}
-                className={`bg-gradient-to-b from-black/75 via-black/45 to-black/80 transition-opacity duration-500 ${
-                  hoveredIdx === idx ? "opacity-0" : "opacity-100"
-                }`}
-              />
-            ))}
-          </motion.div>
+                  {/* Затемняющий оверлей строго внутри своей колонки */}
+                  <motion.div
+                    style={{ opacity: darkOverlay }}
+                    className="absolute inset-0 pointer-events-none z-10"
+                  >
+                    <div
+                      className={`w-full h-full bg-gradient-to-b from-black/75 via-black/45 to-black/80 transition-opacity duration-500 ${
+                        hoveredIdx === idx ? "opacity-0" : "opacity-100"
+                      }`}
+                    />
+                  </motion.div>
+                </div>
+              );
+            })}
+          </div>
 
 
 

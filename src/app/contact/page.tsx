@@ -552,17 +552,35 @@ export default function ContactPage() {
               type="submit"
               disabled={isSubmitting || Object.keys(errors).length > 0}
               style={{
-                opacity: !(isSubmitting || Object.keys(errors).length > 0) ? 1 : 0.35,
+                opacity: isSubmitting ? 1 : !(Object.keys(errors).length > 0) ? 1 : 0.35,
               }}
-              className={`rounded-full h-14 md:h-16 w-full md:w-fit px-12 font-bold text-[15px] flex items-center justify-center bg-black text-white transition-transform duration-300 ease-out ${
+              className={`rounded-full h-14 md:h-16 w-full md:w-fit md:min-w-[225px] px-12 font-bold text-[15px] flex items-center justify-center ${
+                isSubmitting ? 'bg-black/35 text-black' : 'bg-black text-white'
+              } transition-transform duration-300 ease-out ${
                 !(isSubmitting || Object.keys(errors).length > 0)
                   ? 'cursor-pointer hover:scale-105 active:scale-95'
                   : 'cursor-not-allowed'
               }`}
             >
-              <span>
-                {isSubmitting ? "Відправка..." : "Залишити заявку"}
-              </span>
+              {isSubmitting ? (
+                <span className="inline-flex items-center justify-center gap-1.5 h-5" aria-label="Відправка">
+                  {[0, 1, 2].map((i) => (
+                    <motion.span
+                      key={i}
+                      className="w-[5px] h-[5px] rounded-full bg-black block"
+                      animate={{ y: [0, -3.5, 0], opacity: [0.45, 1, 0.45] }}
+                      transition={{
+                        duration: 0.75,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: i * 0.15,
+                      }}
+                    />
+                  ))}
+                </span>
+              ) : (
+                <span>Залишити заявку</span>
+              )}
             </button>
           </motion.div>
 

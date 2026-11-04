@@ -293,16 +293,36 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    let cancelled = false;
+    let blobUrl: string | null = null;
+    let primed = false;
 
-    const markReady = () => {
+    const syncFrame = () => {
       videoReadyRef.current = true;
-      const initialTarget = pendingTimeRef.current ?? computeTargetTime(scrollSource.get());
+      const initialTarget = Math.max(0.001, pendingTimeRef.current ?? computeTargetTime(scrollSource.get()));
+      if (!primed) {
+        primed = true;
+        const p = video.play();
+        if (p !== undefined) {
+          p.then(() => {
+            video.pause();
+            video.removeAttribute('poster');
+            video.currentTime = initialTarget;
+          }).catch(() => {
+            video.removeAttribute('poster');
+            video.currentTime = initialTarget;
+          });
+          return;
+        }
+      }
+      video.removeAttribute('poster');
       if (Math.abs(video.currentTime - initialTarget) > 0.008 && !video.seeking) {
         video.currentTime = initialTarget;
       }
     };
 
     const onSeeked = () => {
+      video.removeAttribute('poster');
       if (pendingTimeRef.current !== null && !video.seeking) {
         const next = pendingTimeRef.current;
         pendingTimeRef.current = null;
@@ -312,19 +332,41 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
       }
     };
 
-    if (video.readyState >= 1) markReady();
-    video.addEventListener('loadedmetadata', markReady);
-    video.addEventListener('loadeddata', markReady);
-    video.addEventListener('canplay', markReady);
+    video.addEventListener('loadeddata', syncFrame);
+    video.addEventListener('canplay', syncFrame);
     video.addEventListener('seeked', onSeeked);
 
+    // Загружаем весь MP4 целиком в оперативную память (Blob URL), чтобы при скролле не было сетевых запросов
+    const delayMs = index * 120;
+    const timer = setTimeout(() => {
+      fetch(product.videoSrc, { cache: 'force-cache' })
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.blob();
+        })
+        .then((blob) => {
+          if (cancelled || !videoRef.current) return;
+          blobUrl = URL.createObjectURL(blob);
+          primed = false;
+          videoRef.current.src = blobUrl;
+          videoRef.current.load();
+        })
+        .catch(() => {
+          if (cancelled || !videoRef.current) return;
+          videoRef.current.src = product.videoSrc;
+          videoRef.current.load();
+        });
+    }, delayMs);
+
     return () => {
-      video.removeEventListener('loadedmetadata', markReady);
-      video.removeEventListener('loadeddata', markReady);
-      video.removeEventListener('canplay', markReady);
+      cancelled = true;
+      clearTimeout(timer);
+      video.removeEventListener('loadeddata', syncFrame);
+      video.removeEventListener('canplay', syncFrame);
       video.removeEventListener('seeked', onSeeked);
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
     };
-  }, [product.videoSrc]);
+  }, [product.videoSrc, index]);
 
   useMotionValueEvent(scrollSource, "change", (p) => {
     seekTo(computeTargetTime(p));
@@ -362,7 +404,6 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
       >
         <video
           ref={videoRef}
-          src={product.videoSrc}
           poster={product.poster}
           muted
           playsInline

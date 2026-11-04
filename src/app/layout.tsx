@@ -18,6 +18,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="uk"
       className={`${golos.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="preload" as="image" href="/0005.jpg" fetchPriority="high" />
+      </head>
       <body className="min-h-full flex flex-col font-sans">{children}</body>
     </html>
   );

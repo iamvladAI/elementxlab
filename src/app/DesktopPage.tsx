@@ -478,7 +478,7 @@ export default function Home() {
               />
             ) : (
               <img
-                src="/0005.png"
+                src="/0005.jpg"
                 alt="Element X Lab"
                 fetchPriority="high"
                 loading="eager"

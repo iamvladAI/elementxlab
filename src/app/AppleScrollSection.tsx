@@ -89,7 +89,7 @@ const products = [
 // Все баночки стоят на одной ленте с фиксированным шагом BOTTLE_GAP (vh), поэтому физически
 // не могут наехать друг на друга: следующая появляется снизу только когда предыдущая уходит вверх.
 // Лента не останавливается полностью — у каждой баночки в центре лишь мягко замедляется (~45% скорости).
-const BOTTLE_GAP = 125; // vh между центрами соседних баночек
+const BOTTLE_GAP = 92; // vh между центрами соседних баночек (сближены для гармоничного перехода без пустоты)
 // Моменты скролла (earlyScroll), когда баночка i ровно в центре экрана
 const CENTER_KNOTS = [0.18, 0.455, 0.73, 1.0];
 
@@ -115,13 +115,12 @@ const conveyorAt = (p: number) => {
 // Положение баночки i на экране (vh): >0 ниже центра, <0 выше центра
 const bottleY = (p: number, i: number) => BOTTLE_GAP * i - conveyorAt(p);
 
-// Текст привязан к положению СВОЕЙ баночки: появляется, только когда баночка почти доехала до центра,
-// и уходит вверх строго вместе с ней (никогда раньше и никогда позже)
+// Текст привязан к положению СВОЕЙ баночки: сближен вместе с баночками и синхронно выезжает/уезжает
 const textOpacityFromY = (y: number) => {
-  if (y > 0) return 1 - easeSoft((y - 6) / 30); // полностью виден при y < 6vh, исчезает к 36vh
-  return 1 - easeSoft(-y / 40); // уходит вместе с баночкой, исчезает к -40vh
+  if (y > 0) return 1 - easeSoft((y - 8) / 36); // плавно проявляется с 44vh и полностью виден к 8vh
+  return 1 - easeSoft((-y - 6) / 36); // держится в центре и плавно уходит вместе с баночкой к -42vh
 };
-const textYFromY = (y: number) => (y > 0 ? 2 + y * 0.4 : 2 + y * 0.65);
+const textYFromY = (y: number) => (y > 0 ? 2 + y * 0.52 : 2 + y * 0.58);
 
 interface AppleScrollSectionProps {
   appleY?: number;
@@ -260,8 +259,36 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
     return textOpacityFromY(y);
   });
 
-  // ВИДЕО-СКРАБИНГ (1-в-1 как у Apple через blob: в оперативной памяти + keyframe на каждом кадре):
+  // ВИДЕО-СКРАБИНГ (каскадная приоритетная загрузка в RAM + мгновенный неблокирующий seek):
   const videoDuration = product.totalFrames / 30; // секунды (30fps)
+  const pendingTimeRef = useRef<number | null>(null);
+
+  const computeTargetTime = (p: number) => {
+    let t: number;
+    if (index === 0) {
+      t = p / CENTER_KNOTS[0];
+    } else {
+      const y = bottleY(p, index);
+      t = (80 - y) / 80;
+    }
+    t = Math.max(0, Math.min(1, t));
+    return t * videoDuration;
+  };
+
+  const seekTo = (targetTime: number) => {
+    const video = videoRef.current;
+    if (!video || !videoReadyRef.current) {
+      pendingTimeRef.current = targetTime;
+      return;
+    }
+    if (Math.abs(video.currentTime - targetTime) < 0.008) return;
+    if (video.seeking) {
+      pendingTimeRef.current = targetTime;
+    } else {
+      pendingTimeRef.current = null;
+      video.currentTime = targetTime;
+    }
+  };
 
   useEffect(() => {
     const video = videoRef.current;
@@ -271,49 +298,58 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
 
     const markReady = () => {
       videoReadyRef.current = true;
+      const initialTarget = pendingTimeRef.current ?? computeTargetTime(scrollSource.get());
+      if (Math.abs(video.currentTime - initialTarget) > 0.008 && !video.seeking) {
+        video.currentTime = initialTarget;
+      }
     };
+
+    const onSeeked = () => {
+      if (pendingTimeRef.current !== null && !video.seeking) {
+        const next = pendingTimeRef.current;
+        pendingTimeRef.current = null;
+        if (Math.abs(video.currentTime - next) > 0.008) {
+          video.currentTime = next;
+        }
+      }
+    };
+
     if (video.readyState >= 1) markReady();
     video.addEventListener('loadedmetadata', markReady);
     video.addEventListener('loadeddata', markReady);
+    video.addEventListener('seeked', onSeeked);
 
-    // Загружаем MP4 целиком в RAM как blob: URL (как на сайте Apple),
-    // чтобы при скролле браузер мгновенно брал кадры из памяти без сетевых подгрузок
-    fetch(product.videoSrc)
-      .then((res) => res.blob())
-      .then((blob) => {
-        if (cancelled) return;
-        objectUrl = URL.createObjectURL(blob);
-        video.src = objectUrl;
-        video.load();
-      })
-      .catch(() => {
-        if (!cancelled) video.src = product.videoSrc;
-      });
+    // Каскадная загрузка по очереди (1-я баночка сразу, 2-я через 180мс, 3-я через 360мс, 4-я через 540мс),
+    // чтобы они не забивали канал друг другу и скачивались по ~1 МБ за доли секунды
+    const timer = setTimeout(() => {
+      fetch(product.videoSrc, { priority: index === 0 ? 'high' : 'auto' } as RequestInit)
+        .then((res) => res.blob())
+        .then((blob) => {
+          if (cancelled) return;
+          objectUrl = URL.createObjectURL(blob);
+          video.src = objectUrl;
+          video.load();
+        })
+        .catch(() => {
+          if (!cancelled) {
+            video.src = product.videoSrc;
+            video.load();
+          }
+        });
+    }, index * 180);
 
     return () => {
       cancelled = true;
+      clearTimeout(timer);
       video.removeEventListener('loadedmetadata', markReady);
       video.removeEventListener('loadeddata', markReady);
+      video.removeEventListener('seeked', onSeeked);
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [product.videoSrc]);
+  }, [product.videoSrc, index]);
 
   useMotionValueEvent(scrollSource, "change", (p) => {
-    const video = videoRef.current;
-    if (!video || !videoReadyRef.current) return;
-
-    let t: number;
-    if (index === 0) {
-      t = p / CENTER_KNOTS[0];
-    } else {
-      const y = bottleY(p, index);
-      t = (95 - y) / 95;
-    }
-    t = Math.max(0, Math.min(1, t));
-    const targetTime = t * videoDuration;
-    if (Math.abs(video.currentTime - targetTime) > 0.01) {
-      video.currentTime = targetTime;
-    }
+    seekTo(computeTargetTime(p));
   });
 
   return (
@@ -352,15 +388,15 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
           muted
           playsInline
           preload="auto"
-          className={`w-[140%] max-w-[800px] xl:max-w-[1000px] origin-center object-contain translate-x-[-10%] ${
+          className={`w-[140%] max-w-[800px] xl:max-w-[1000px] origin-center object-contain mix-blend-multiply translate-x-[-10%] ${
             product.id === 'face'
               ? 'scale-[1.0] md:scale-[1.12]'
               : product.id === 'perfume'
-              ? 'scale-[1.08] md:scale-[1.2]'
+              ? 'scale-[1.02] md:scale-[1.13]'
               : product.id === 'body'
               ? 'scale-[1.15] md:scale-[1.3]'
               : product.id === 'hair'
-              ? 'scale-[1.22] md:scale-[1.4]'
+              ? 'scale-[1.12] md:scale-[1.28]'
               : 'scale-[1.3] md:scale-[1.5]'
           } ${
             product.id === 'hair' ? 'translate-y-[8%]' : ''

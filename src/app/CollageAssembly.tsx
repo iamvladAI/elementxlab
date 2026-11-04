@@ -215,68 +215,68 @@ export const CollageAssembly = () => {
         >
           {/* Клон Слайда 4 слева (для бесшовного свайпа назад с 1 на 4) */}
           <div className="w-full h-full overflow-hidden">
-            <img src="/1_кокос БЕЗ ДАТИ.jpg" alt="Product 10" draggable={false} loading="eager" decoding="sync" className="w-full h-full object-cover transform-gpu" />
+            <img src="/1_кокос БЕЗ ДАТИ.jpg" alt="Product 10" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
           <div className="w-full h-full overflow-hidden">
-            <img src="/hydrasence_horizontal_1789481454129.jpg" alt="Product 11" draggable={false} loading="eager" decoding="sync" className="w-full h-full object-cover transform-gpu" />
+            <img src="/hydrasence_horizontal_1789481454129.jpg" alt="Product 11" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
           <div className="w-full h-full overflow-hidden">
-            <img src="/DSC00868.jpeg" alt="Product 12" draggable={false} loading="eager" decoding="sync" className="w-full h-full object-cover transform-gpu" />
+            <img src="/DSC00868.jpeg" alt="Product 12" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
 
           {/* Слайд 1: первые 3 фото */}
           <div className="w-full h-full overflow-hidden">
-            <img src="/night in paris 1.jpeg" alt="Mermade Night in Paris" draggable={false} loading="eager" decoding="sync" className="w-full h-full object-cover transform-gpu" />
+            <img src="/night in paris 1.jpeg" alt="Mermade Night in Paris" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
           <div className="w-full h-full overflow-hidden">
-            <img src="/03.jpg" alt="Hydrasence 16 in 1" draggable={false} loading="eager" decoding="sync" className="w-full h-full object-cover transform-gpu" />
+            <img src="/03.jpg" alt="Hydrasence 16 in 1" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
           <div className="w-full h-full overflow-hidden">
-            <img src="/Копія _H98A4765.jpg" alt="Hydrasence Hair Peeling" draggable={false} loading="eager" decoding="sync" className="w-full h-full object-cover transform-gpu" />
+            <img src="/Копія _H98A4765.jpg" alt="Hydrasence Hair Peeling" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
 
           {/* Слайд 2: вторые 3 фото */}
           <div className="w-full h-full overflow-hidden">
-            <img src="/H98A4391.jpg" alt="Product 4" draggable={false} loading="eager" decoding="sync" className="w-full h-full object-cover transform-gpu" />
+            <img src="/H98A4391.jpg" alt="Product 4" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
           <div className="w-full h-full overflow-hidden">
-            <img src="/dsc08443.jpeg" alt="Product 5" draggable={false} loading="eager" decoding="sync" className="w-full h-full object-cover transform-gpu" />
+            <img src="/dsc08443.jpeg" alt="Product 5" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
           <div className="w-full h-full overflow-hidden">
-            <img src="/Копія _H98A3905.jpg" alt="Product 6" draggable={false} loading="eager" decoding="sync" className="w-full h-full object-cover transform-gpu" />
+            <img src="/Копія _H98A3905.jpg" alt="Product 6" draggable={false} loading="eager" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
 
           {/* Слайд 3: третьи 3 фото */}
           <div className="w-full h-full overflow-hidden">
-            <img src="/DSC09787.jpeg" alt="Product 9" draggable={false} loading="eager" decoding="sync" className="w-full h-full object-cover transform-gpu" />
+            <img src="/DSC09787.jpeg" alt="Product 9" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
           <div className="w-full h-full overflow-hidden">
-            <img src="/img5.jpg" alt="Product 8" draggable={false} loading="eager" decoding="sync" className="w-full h-full object-cover transform-gpu" />
+            <img src="/img5.jpg" alt="Product 8" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
           <div className="w-full h-full overflow-hidden">
-            <img src="/h4.jpg" alt="Product 7" draggable={false} loading="eager" decoding="sync" className="w-full h-full object-cover transform-gpu" />
+            <img src="/h4.jpg" alt="Product 7" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
 
           {/* Слайд 4: четвертые 3 фото */}
           <div className="w-full h-full overflow-hidden">
-            <img src="/1_кокос БЕЗ ДАТИ.jpg" alt="Product 10" draggable={false} loading="eager" decoding="sync" className="w-full h-full object-cover transform-gpu" />
+            <img src="/1_кокос БЕЗ ДАТИ.jpg" alt="Product 10" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
           <div className="w-full h-full overflow-hidden">
-            <img src="/hydrasence_horizontal_1789481454129.jpg" alt="Product 11" draggable={false} loading="eager" decoding="sync" className="w-full h-full object-cover transform-gpu" />
+            <img src="/hydrasence_horizontal_1789481454129.jpg" alt="Product 11" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
           <div className="w-full h-full overflow-hidden">
-            <img src="/DSC00868.jpeg" alt="Product 12" draggable={false} loading="eager" decoding="sync" className="w-full h-full object-cover transform-gpu" />
+            <img src="/DSC00868.jpeg" alt="Product 12" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
 
           {/* Клон Слайда 1 справа (для бесшовной прокрутки по кругу с 4 на 1) */}
           <div className="w-full h-full overflow-hidden">
-            <img src="/night in paris 1.jpeg" alt="Mermade Night in Paris" draggable={false} loading="eager" decoding="sync" className="w-full h-full object-cover transform-gpu" />
+            <img src="/night in paris 1.jpeg" alt="Mermade Night in Paris" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
           <div className="w-full h-full overflow-hidden">
-            <img src="/03.jpg" alt="Hydrasence 16 in 1" draggable={false} loading="eager" decoding="sync" className="w-full h-full object-cover transform-gpu" />
+            <img src="/03.jpg" alt="Hydrasence 16 in 1" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
           <div className="w-full h-full overflow-hidden">
-            <img src="/Копія _H98A4765.jpg" alt="Hydrasence Hair Peeling" draggable={false} loading="eager" decoding="sync" className="w-full h-full object-cover transform-gpu" />
+            <img src="/Копія _H98A4765.jpg" alt="Hydrasence Hair Peeling" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
         </div>
       </div>

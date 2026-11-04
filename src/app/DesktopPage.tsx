@@ -702,6 +702,7 @@ export default function Home() {
                   <video 
                     suppressHydrationWarning
                     src={`/video${num}.mp4`} 
+                    preload="none"
                     autoPlay 
                     loop 
                     muted 
@@ -772,15 +773,15 @@ const ReviewsAssembly = ({ phaseOffset3 }: { phaseOffset3: number }) => {
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ["start start", "end end"]
+    offset: ["start start", "end 92%"]
   });
 
-  // Без пружины: карточки жестко привязаны к скроллу, поэтому в момент отлипания секции они уже стоят на месте и не "догоняют" страницу
+  // Без пружины: карточки жестко привязаны к скроллу
   const smoothProgress = scrollYProgress;
 
   const smoothStep = (t: number) => {
     const c = Math.max(0, Math.min(1, t));
-    return c * c * (3 - 2 * c);
+    return 0.35 * c + 0.65 * (c * c * (3 - 2 * c));
   };
 
   // Карточка 1 уменьшается, а её текст уходит в блюр ТОЛЬКО когда секция уже закреплена и поднимается Карточка 2
@@ -807,25 +808,25 @@ const ReviewsAssembly = ({ phaseOffset3 }: { phaseOffset3: number }) => {
     return `${(1 - t) * 100}vh`;
   });
   const scale2 = useTransform(smoothProgress, (p) => {
-    const t = smoothStep((p - 0.5) / (0.97 - 0.5));
+    const t = smoothStep((p - 0.5) / (1.0 - 0.5));
     return 1 - t * 0.05;
   });
   const contentOpacity2 = useTransform(smoothProgress, (p) => {
     if (containerRef.current && containerRef.current.getBoundingClientRect().top > 5) return 1;
     if (p <= 0.53) return 1;
-    const t = smoothStep((p - 0.53) / (0.95 - 0.53));
+    const t = smoothStep((p - 0.53) / (0.98 - 0.53));
     return 1 - t * 0.45;
   });
   const contentBlur2 = useTransform(smoothProgress, (p) => {
     if (containerRef.current && containerRef.current.getBoundingClientRect().top > 5) return "blur(0px)";
     if (p <= 0.53) return "blur(0px)";
-    const t = smoothStep((p - 0.53) / (0.95 - 0.53));
+    const t = smoothStep((p - 0.53) / (0.98 - 0.53));
     return `blur(${(t * 4.5).toFixed(2)}px)`;
   });
 
-  // Карточка 3 встает на место почти в самом конце закрепления (0.97) — без лишней паузы, секция отлипает сразу
+  // Камера отлипает за ~полсантиметра до того, как Карточка 3 доедет до конца (за счёт offset "end 92%" и финиша на 1.0)
   const y3 = useTransform(smoothProgress, (p) => {
-    const t = smoothStep((p - 0.5) / (0.97 - 0.5));
+    const t = smoothStep((p - 0.5) / (1.0 - 0.5));
     return `${(1 - t) * 100}vh`;
   });
   

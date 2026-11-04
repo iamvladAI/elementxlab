@@ -29,15 +29,43 @@ export const CollageAssembly = () => {
   const swipeTimeRef = useRef(0);
   const pointerStartXRef = useRef<number | null>(null);
 
-  // Предварительно декодируем все 12 фото в память видеокарты, чтобы не было рывков
+  const sectionRef = useRef<HTMLElement | null>(null);
+
+  // Предварительно декодируем 12 фото карусели только когда пользователь приближается к секции (или через 2.5с после загрузки верха страницы),
+  // чтобы не забивать интернет-канал во время загрузки 4 баночек наверху
   useEffect(() => {
-    SLIDE_IMAGES.forEach((src) => {
-      const img = new Image();
-      img.src = src;
-      if (img.decode) {
-        img.decode().catch(() => {});
-      }
-    });
+    let loaded = false;
+    const preloadAll = () => {
+      if (loaded) return;
+      loaded = true;
+      SLIDE_IMAGES.forEach((src) => {
+        const img = new Image();
+        img.src = src;
+        if (img.decode) {
+          img.decode().catch(() => {});
+        }
+      });
+    };
+
+    const timer = setTimeout(preloadAll, 2500);
+    let observer: IntersectionObserver | null = null;
+    if (sectionRef.current && typeof IntersectionObserver !== 'undefined') {
+      observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) {
+            preloadAll();
+            observer?.disconnect();
+          }
+        },
+        { rootMargin: '1400px' }
+      );
+      observer.observe(sectionRef.current);
+    }
+
+    return () => {
+      clearTimeout(timer);
+      observer?.disconnect();
+    };
   }, []);
 
   // После мгновенного сброса с клона (5 -> 1 или 0 -> 4) возвращаем плавную анимацию на следующем кадре
@@ -181,6 +209,7 @@ export const CollageAssembly = () => {
 
   return (
     <section
+      ref={sectionRef}
       onWheel={handleWheel}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
@@ -243,7 +272,7 @@ export const CollageAssembly = () => {
             <img src="/dsc08443.jpeg" alt="Product 5" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
           <div className="w-full h-full overflow-hidden">
-            <img src="/Копія _H98A3905.jpg" alt="Product 6" draggable={false} loading="eager" decoding="async" className="w-full h-full object-cover transform-gpu" />
+            <img src="/Копія _H98A3905.jpg" alt="Product 6" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover transform-gpu" />
           </div>
 
           {/* Слайд 3: третьи 3 фото */}

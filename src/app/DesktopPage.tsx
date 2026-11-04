@@ -169,6 +169,29 @@ export default function Home() {
   const [phaseOffset, setPhaseOffset] = useState(0);
   const [phaseOffset3, setPhaseOffset3] = useState(0);
   const [heroReady, setHeroReady] = useState(HERO_MODE === "photo");
+  const [loadBottomVideos, setLoadBottomVideos] = useState(false);
+  const bottomVideosRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoadBottomVideos(true), 2500);
+    let observer: IntersectionObserver | null = null;
+    if (bottomVideosRef.current && typeof IntersectionObserver !== "undefined") {
+      observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((e) => e.isIntersecting)) {
+            setLoadBottomVideos(true);
+            observer?.disconnect();
+          }
+        },
+        { rootMargin: "1200px" }
+      );
+      observer.observe(bottomVideosRef.current);
+    }
+    return () => {
+      clearTimeout(timer);
+      observer?.disconnect();
+    };
+  }, []);
 
   // Состояние и смещение для центрирования сертификата GMP по клику
   const certWrapRef = useRef<HTMLDivElement>(null);
@@ -641,6 +664,7 @@ export default function Home() {
                   transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
                   src="https://cdn.prod.website-files.com/69b2957a534625d1beb1cce7/69c4f72e83b4b8e066fcd250_GMP%20Certificate.jpg" 
                   alt="GMP Certificate" 
+                  loading="lazy"
                   className="relative z-20 w-full object-contain drop-shadow-2xl"
                 />
               </motion.div>
@@ -699,13 +723,13 @@ export default function Home() {
             </div>
 
             {/* ТРИ ВИДЕО РАЗДЕЛЕННЫЕ С ЗАКРУГЛЕНИЕМ */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mt-8 lg:mt-10 w-full">
+            <div ref={bottomVideosRef} className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mt-8 lg:mt-10 w-full">
               {[1, 2, 3].map((num) => (
-                <div key={num} className="w-full h-[350px] sm:h-[400px] md:h-[45vw] lg:h-[450px] xl:h-[500px] relative overflow-hidden rounded-[24px]">
+                <div key={num} className="w-full h-[350px] sm:h-[400px] md:h-[45vw] lg:h-[450px] xl:h-[500px] relative overflow-hidden rounded-[24px] bg-zinc-100">
                   <video 
                     suppressHydrationWarning
-                    src={`/video${num}.mp4`} 
-                    preload="none"
+                    src={loadBottomVideos ? `/video${num}.mp4` : undefined}
+                    preload="metadata"
                     autoPlay 
                     loop 
                     muted 
@@ -899,6 +923,7 @@ const ReviewsAssembly = ({ phaseOffset3 }: { phaseOffset3: number }) => {
                     key={i} 
                     src={logo} 
                     alt="Partner Logo" 
+                    loading="lazy"
                     className="h-6 md:h-10 object-contain"
                     style={{ 
                       filter: logo.includes('makeup')
@@ -993,7 +1018,7 @@ const ReviewsAssembly = ({ phaseOffset3 }: { phaseOffset3: number }) => {
               "Від імені компанії хочу подякувати вам за співпрацю! Ми цінуємо ваше розуміння ринку і системний підхід до виконання задач. Окремо дякую за те, що ми на одній хвилі в плані розвитку і трендів. Дуже рада мати змогу працювати з вами."
             </p>
             <div className="flex items-center gap-4">
-              <img src="/avrora-logo.jpg" alt="Avrora" className="w-12 h-12 md:w-14 md:h-14 object-cover rounded-2xl shadow-sm border border-zinc-200" />
+              <img src="/avrora-logo.jpg" alt="Avrora" loading="lazy" className="w-12 h-12 md:w-14 md:h-14 object-cover rounded-2xl shadow-sm border border-zinc-200" />
               <div className="flex flex-col text-left">
                 <span className="font-bold text-black text-base md:text-lg">Дарина Малиновська</span>
                 <span className="text-zinc-600 text-xs md:text-sm">Avrora</span>
@@ -1087,6 +1112,7 @@ const ReviewsAssembly = ({ phaseOffset3 }: { phaseOffset3: number }) => {
           transition={{ duration: 1, delay: 0.2, ease: "easeOut" }}
           src="/girl2.png" 
           alt="Girl" 
+          loading="lazy"
           className="w-[85vw] md:w-[35vw] max-w-[600px] h-auto object-contain pointer-events-none self-end" 
           style={{ marginBottom: '-2px' }} 
         />

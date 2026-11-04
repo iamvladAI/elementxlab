@@ -20,6 +20,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head>
         <link rel="preload" as="image" href="/0005.jpg" fetchPriority="high" />
+        <link rel="preload" as="fetch" href="/bottle_face_v2.mp4" crossOrigin="anonymous" />
+        <link rel="preload" as="fetch" href="/bottle_hair_v2.mp4" crossOrigin="anonymous" />
       </head>
       <body className="min-h-full flex flex-col font-sans">{children}</body>
     </html>

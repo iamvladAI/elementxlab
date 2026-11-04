@@ -51,7 +51,7 @@ const products = [
       'Гелі для вмивання', 'Маски', 'Зволожуючі місти', 'Тонери', 
       'Блиски для губ', 'Тінти', 'Бальзами для губ', 'Точкові засоби'
     ],
-    videoSrc: '/bottle_face.mp4',
+    videoSrc: '/bottle_face_v2.mp4',
     poster: '/bottle_face_poster.webp',
     totalFrames: 200,
     scrollMap: [0, 0.20, 0.20, 0.38]
@@ -60,7 +60,7 @@ const products = [
     id: 'hair',
     title: 'Для волосся',
     tags: ['Шампуні', 'Бальзами', 'Маски для волосся', 'Сироватки для кінчиків', 'Термозахист', 'Пілінги для шкіри голови', 'Сухі шампуні', 'Олії'],
-    videoSrc: '/bottle_hair.mp4',
+    videoSrc: '/bottle_hair_v2.mp4',
     poster: '/bottle_hair_poster.webp',
     totalFrames: 180,
     scrollMap: [0.18, 0.37, 0.37, 0.56]
@@ -69,7 +69,7 @@ const products = [
     id: 'body',
     title: 'Для тіла',
     tags: ['Гелі для душу', 'Скраби для тіла', 'Лосьйони', 'Батери', 'Олії для тіла', 'Креми для рук', 'Антицелюлітні засоби', 'Сіль для ванн'],
-    videoSrc: '/bottle_body.mp4',
+    videoSrc: '/bottle_body_v2.mp4',
     poster: '/bottle_body_poster.webp',
     totalFrames: 180,
     scrollMap: [0.40, 0.59, 0.59, 0.78]
@@ -78,12 +78,37 @@ const products = [
     id: 'perfume',
     title: 'Парфуми',
     tags: ['Парфумована вода', 'Туалетна вода', 'Тверді парфуми', 'Місти для тіла', 'Аромадифузори для дому', 'Спреї'],
-    videoSrc: '/bottle_perfume.mp4',
+    videoSrc: '/bottle_perfume_v2.mp4',
     poster: '/bottle_perfume_poster.webp',
     totalFrames: 145,
     scrollMap: [0.62, 0.96, 1.0, 1.0] 
   }
 ];
+
+// Глобальный кэш Blob-ссылок в оперативной памяти
+const blobCache = new Map<string, string>();
+const blobPromises = new Map<string, Promise<string>>();
+
+function loadVideoBlob(src: string): Promise<string> {
+  const cached = blobCache.get(src);
+  if (cached) return Promise.resolve(cached);
+  const existing = blobPromises.get(src);
+  if (existing) return existing;
+
+  const p = fetch(src)
+    .then((res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.blob();
+    })
+    .then((blob) => {
+      const url = URL.createObjectURL(blob);
+      blobCache.set(src, url);
+      return url;
+    });
+
+  blobPromises.set(src, p);
+  return p;
+}
 
 // --- ЕДИНАЯ «ЛЕНТА» (КОНВЕЙЕР) В СТИЛЕ MACBOOK NEO ---
 // Все баночки стоят на одной ленте с фиксированным шагом BOTTLE_GAP (vh), поэтому физически
@@ -201,6 +226,7 @@ export default function AppleScrollSection({ appleY = 0 }: AppleScrollSectionPro
             product={product} 
             scrollYProgress={smoothProgress} 
             earlyScroll={smoothEarly}
+            rawScroll={earlyScroll}
             index={i} 
           />
         ))}
@@ -209,10 +235,11 @@ export default function AppleScrollSection({ appleY = 0 }: AppleScrollSectionPro
   );
 }
 
-function ProductLayer({ product, scrollYProgress, earlyScroll, index }: { 
+function ProductLayer({ product, scrollYProgress, earlyScroll, rawScroll, index }: { 
   product: any, 
   scrollYProgress: MotionValue<number>, 
   earlyScroll: MotionValue<number>,
+  rawScroll: MotionValue<number>,
   index: number 
 }) {
   const [inStart, inEnd, outStart, outEnd] = product.scrollMap;
@@ -272,7 +299,8 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
       t = (80 - y) / 80;
     }
     t = Math.max(0, Math.min(1, t));
-    return t * videoDuration;
+    // Минимум 0.015с (внутри 0-го кадра при 30fps), чтобы браузер всегда делал реальный аппаратный seek с 0.000
+    return Math.max(0.015, Math.min(videoDuration - 0.01, t * videoDuration));
   };
 
   const seekTo = (targetTime: number) => {
@@ -281,7 +309,7 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
       pendingTimeRef.current = targetTime;
       return;
     }
-    if (Math.abs(video.currentTime - targetTime) < 0.008) return;
+    if (Math.abs(video.currentTime - targetTime) < 0.005) return;
     if (video.seeking) {
       pendingTimeRef.current = targetTime;
     } else {
@@ -294,65 +322,54 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
     const video = videoRef.current;
     if (!video) return;
     let cancelled = false;
-    let blobUrl: string | null = null;
-    let primed = false;
 
     const syncFrame = () => {
+      if (cancelled || !videoRef.current) return;
       videoReadyRef.current = true;
-      const initialTarget = Math.max(0.001, pendingTimeRef.current ?? computeTargetTime(scrollSource.get()));
-      if (!primed) {
-        primed = true;
-        const p = video.play();
-        if (p !== undefined) {
-          p.then(() => {
-            video.pause();
-            video.removeAttribute('poster');
-            video.currentTime = initialTarget;
-          }).catch(() => {
-            video.removeAttribute('poster');
-            video.currentTime = initialTarget;
-          });
-          return;
-        }
-      }
-      video.removeAttribute('poster');
-      if (Math.abs(video.currentTime - initialTarget) > 0.008 && !video.seeking) {
-        video.currentTime = initialTarget;
+      const currentProgress = rawScroll.get() || scrollSource.get();
+      const liveTarget = pendingTimeRef.current ?? computeTargetTime(currentProgress);
+      pendingTimeRef.current = null;
+      if (Math.abs(video.currentTime - liveTarget) > 0.004 && !video.seeking) {
+        video.currentTime = liveTarget;
+      } else {
+        video.removeAttribute('poster');
       }
     };
 
     const onSeeked = () => {
+      if (cancelled || !videoRef.current) return;
       video.removeAttribute('poster');
       if (pendingTimeRef.current !== null && !video.seeking) {
         const next = pendingTimeRef.current;
         pendingTimeRef.current = null;
-        if (Math.abs(video.currentTime - next) > 0.008) {
+        if (Math.abs(video.currentTime - next) > 0.004) {
           video.currentTime = next;
         }
       }
     };
 
+    video.addEventListener('loadedmetadata', syncFrame);
     video.addEventListener('loadeddata', syncFrame);
     video.addEventListener('canplay', syncFrame);
     video.addEventListener('seeked', onSeeked);
 
-    // Загружаем весь MP4 целиком в оперативную память (Blob URL), чтобы при скролле не было сетевых запросов
-    const delayMs = index * 120;
+    // Если пользователь перезагрузил страницу посередине секции — видимая баночка качается первой (0 мс),
+    // иначе — строго по порядку сверху вниз (0 -> 1 -> 2 -> 3)
+    const currentProgress = rawScroll.get() || scrollSource.get();
+    const distFromCenter = Math.abs(bottleY(currentProgress, index));
+    const delayMs = distFromCenter < 95 ? 0 : index * 60;
+
     const timer = setTimeout(() => {
-      fetch(product.videoSrc, { cache: 'force-cache' })
-        .then((res) => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.blob();
-        })
-        .then((blob) => {
+      loadVideoBlob(product.videoSrc)
+        .then((blobUrl) => {
           if (cancelled || !videoRef.current) return;
-          blobUrl = URL.createObjectURL(blob);
-          primed = false;
+          videoReadyRef.current = false;
           videoRef.current.src = blobUrl;
           videoRef.current.load();
         })
         .catch(() => {
           if (cancelled || !videoRef.current) return;
+          videoReadyRef.current = false;
           videoRef.current.src = product.videoSrc;
           videoRef.current.load();
         });
@@ -361,12 +378,18 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
     return () => {
       cancelled = true;
       clearTimeout(timer);
+      video.removeEventListener('loadedmetadata', syncFrame);
       video.removeEventListener('loadeddata', syncFrame);
       video.removeEventListener('canplay', syncFrame);
       video.removeEventListener('seeked', onSeeked);
-      if (blobUrl) URL.revokeObjectURL(blobUrl);
     };
   }, [product.videoSrc, index]);
+
+  useMotionValueEvent(rawScroll, "change", (p) => {
+    if (!videoReadyRef.current) {
+      pendingTimeRef.current = computeTargetTime(p);
+    }
+  });
 
   useMotionValueEvent(scrollSource, "change", (p) => {
     seekTo(computeTargetTime(p));

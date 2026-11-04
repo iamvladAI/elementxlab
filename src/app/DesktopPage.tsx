@@ -480,6 +480,9 @@ export default function Home() {
               <img
                 src="/0005.png"
                 alt="Element X Lab"
+                fetchPriority="high"
+                loading="eager"
+                decoding="sync"
                 onLoad={() => setHeroReady(true)}
                 className="w-full h-full object-cover object-center select-none pointer-events-none"
               />

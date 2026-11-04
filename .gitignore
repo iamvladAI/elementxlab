@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# raw 3D frame folders (replaced by MP4 videos in production)
+/public/scene_first/
+/public/patch_video/
+/public/for_head_video/
+/public/cream_video/
+/public/parfume_video/
+/public/shampoo_video/
+/public/preview/
+/public/last_scene_sprey/
+/public/*.tif
+/public/*.sb-*
+

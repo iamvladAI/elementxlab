@@ -293,8 +293,6 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    let objectUrl: string | null = null;
-    let cancelled = false;
 
     const markReady = () => {
       videoReadyRef.current = true;
@@ -317,36 +315,16 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
     if (video.readyState >= 1) markReady();
     video.addEventListener('loadedmetadata', markReady);
     video.addEventListener('loadeddata', markReady);
+    video.addEventListener('canplay', markReady);
     video.addEventListener('seeked', onSeeked);
 
-    // Каскадная загрузка по очереди (1-я баночка сразу, 2-я через 180мс, 3-я через 360мс, 4-я через 540мс),
-    // чтобы они не забивали канал друг другу и скачивались по ~1 МБ за доли секунды
-    const timer = setTimeout(() => {
-      fetch(product.videoSrc, { priority: index === 0 ? 'high' : 'auto' } as RequestInit)
-        .then((res) => res.blob())
-        .then((blob) => {
-          if (cancelled) return;
-          objectUrl = URL.createObjectURL(blob);
-          video.src = objectUrl;
-          video.load();
-        })
-        .catch(() => {
-          if (!cancelled) {
-            video.src = product.videoSrc;
-            video.load();
-          }
-        });
-    }, index * 180);
-
     return () => {
-      cancelled = true;
-      clearTimeout(timer);
       video.removeEventListener('loadedmetadata', markReady);
       video.removeEventListener('loadeddata', markReady);
+      video.removeEventListener('canplay', markReady);
       video.removeEventListener('seeked', onSeeked);
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [product.videoSrc, index]);
+  }, [product.videoSrc]);
 
   useMotionValueEvent(scrollSource, "change", (p) => {
     seekTo(computeTargetTime(p));
@@ -384,6 +362,7 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, index }: {
       >
         <video
           ref={videoRef}
+          src={product.videoSrc}
           poster={product.poster}
           muted
           playsInline

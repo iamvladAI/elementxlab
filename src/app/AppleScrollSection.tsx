@@ -286,11 +286,11 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, rawScroll, index 
     return textOpacityFromY(y);
   });
 
-  // ВИДЕО-СКРАБИНГ (каскадная приоритетная загрузка в RAM + мгновенный неблокирующий seek):
-  const videoDuration = product.totalFrames / 30; // секунды (30fps)
-  const pendingTimeRef = useRef<number | null>(null);
+  // ВИДЕО-СКРАБИНГ (строго по целым кадрам, без повторных срабатываний canplay на Windows):
+  const pendingFrameRef = useRef<number | null>(null);
+  const lastFrameRef = useRef<number>(-1);
 
-  const computeTargetTime = (p: number) => {
+  const computeTargetFrame = (p: number) => {
     let t: number;
     if (index === 0) {
       t = p / CENTER_KNOTS[0];
@@ -299,23 +299,25 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, rawScroll, index 
       t = (80 - y) / 80;
     }
     t = Math.max(0, Math.min(1, t));
-    // Минимум 0.015с (внутри 0-го кадра при 30fps), чтобы браузер всегда делал реальный аппаратный seek с 0.000
-    return Math.max(0.015, Math.min(videoDuration - 0.01, t * videoDuration));
+    return Math.round(t * (product.totalFrames - 1));
   };
 
-  const seekTo = (targetTime: number) => {
+  const frameToTime = (frame: number) => (frame + 0.35) / 30;
+
+  const seekToFrame = (targetFrame: number) => {
     const video = videoRef.current;
     if (!video || !videoReadyRef.current) {
-      pendingTimeRef.current = targetTime;
+      pendingFrameRef.current = targetFrame;
       return;
     }
-    if (Math.abs(video.currentTime - targetTime) < 0.005) return;
     if (video.seeking) {
-      pendingTimeRef.current = targetTime;
-    } else {
-      pendingTimeRef.current = null;
-      video.currentTime = targetTime;
+      pendingFrameRef.current = targetFrame;
+      return;
     }
+    if (targetFrame === lastFrameRef.current) return;
+    lastFrameRef.current = targetFrame;
+    pendingFrameRef.current = null;
+    video.currentTime = frameToTime(targetFrame);
   };
 
   useEffect(() => {
@@ -323,34 +325,36 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, rawScroll, index 
     if (!video) return;
     let cancelled = false;
 
-    const syncFrame = () => {
-      if (cancelled || !videoRef.current) return;
+    const initOnce = () => {
+      if (cancelled || !videoRef.current || videoReadyRef.current) return;
       videoReadyRef.current = true;
-      const currentProgress = rawScroll.get() || scrollSource.get();
-      const liveTarget = pendingTimeRef.current ?? computeTargetTime(currentProgress);
-      pendingTimeRef.current = null;
-      if (Math.abs(video.currentTime - liveTarget) > 0.004 && !video.seeking) {
-        video.currentTime = liveTarget;
-      } else {
-        video.removeAttribute('poster');
-      }
+      video.removeEventListener('loadedmetadata', initOnce);
+      video.removeEventListener('loadeddata', initOnce);
+      video.removeEventListener('canplay', initOnce);
+
+      const currentProgress = scrollSource.get() || rawScroll.get();
+      const initialFrame = pendingFrameRef.current ?? computeTargetFrame(currentProgress);
+      pendingFrameRef.current = null;
+      lastFrameRef.current = initialFrame;
+      video.currentTime = frameToTime(initialFrame);
     };
 
     const onSeeked = () => {
       if (cancelled || !videoRef.current) return;
       video.removeAttribute('poster');
-      if (pendingTimeRef.current !== null && !video.seeking) {
-        const next = pendingTimeRef.current;
-        pendingTimeRef.current = null;
-        if (Math.abs(video.currentTime - next) > 0.004) {
-          video.currentTime = next;
+      if (pendingFrameRef.current !== null && !video.seeking) {
+        const nextFrame = pendingFrameRef.current;
+        pendingFrameRef.current = null;
+        if (nextFrame !== lastFrameRef.current) {
+          lastFrameRef.current = nextFrame;
+          video.currentTime = frameToTime(nextFrame);
         }
       }
     };
 
-    video.addEventListener('loadedmetadata', syncFrame);
-    video.addEventListener('loadeddata', syncFrame);
-    video.addEventListener('canplay', syncFrame);
+    video.addEventListener('loadedmetadata', initOnce);
+    video.addEventListener('loadeddata', initOnce);
+    video.addEventListener('canplay', initOnce);
     video.addEventListener('seeked', onSeeked);
 
     // Если пользователь перезагрузил страницу посередине секции — видимая баночка качается первой (0 мс),
@@ -364,12 +368,14 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, rawScroll, index 
         .then((blobUrl) => {
           if (cancelled || !videoRef.current) return;
           videoReadyRef.current = false;
+          lastFrameRef.current = -1;
           videoRef.current.src = blobUrl;
           videoRef.current.load();
         })
         .catch(() => {
           if (cancelled || !videoRef.current) return;
           videoReadyRef.current = false;
+          lastFrameRef.current = -1;
           videoRef.current.src = product.videoSrc;
           videoRef.current.load();
         });
@@ -378,21 +384,15 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, rawScroll, index 
     return () => {
       cancelled = true;
       clearTimeout(timer);
-      video.removeEventListener('loadedmetadata', syncFrame);
-      video.removeEventListener('loadeddata', syncFrame);
-      video.removeEventListener('canplay', syncFrame);
+      video.removeEventListener('loadedmetadata', initOnce);
+      video.removeEventListener('loadeddata', initOnce);
+      video.removeEventListener('canplay', initOnce);
       video.removeEventListener('seeked', onSeeked);
     };
   }, [product.videoSrc, index]);
 
-  useMotionValueEvent(rawScroll, "change", (p) => {
-    if (!videoReadyRef.current) {
-      pendingTimeRef.current = computeTargetTime(p);
-    }
-  });
-
   useMotionValueEvent(scrollSource, "change", (p) => {
-    seekTo(computeTargetTime(p));
+    seekToFrame(computeTargetFrame(p));
   });
 
   return (

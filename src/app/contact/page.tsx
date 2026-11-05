@@ -598,7 +598,7 @@ export default function ContactPage() {
               transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.2 }}
               className="fixed inset-0 z-20 bg-white flex flex-col items-center justify-center text-center p-6"
             >
-              <FlyingBats spawnRef={successCircleRef} />
+              {/* <FlyingBats spawnRef={successCircleRef} /> */}
               <div className="relative z-20 mb-6 flex items-center justify-center">
                 {[...Array(12)].map((_, i) => {
                   const angle = (i * 30) * (Math.PI / 180);

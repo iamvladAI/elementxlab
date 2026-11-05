@@ -5,7 +5,7 @@ import HeroImageSequence from "./HeroImageSequence";
 const USE_3D_HERO = false;
 
 // ПЕРЕКЛЮЧАТЕЛЬ ЗАСТАВКИ: "photo" — статичное фото (/0005.png) | "video" — анимация 200 кадров (/scene_first)
-const HERO_MODE: "photo" | "video" = "photo";
+const HERO_MODE: "photo" | "video" = "video";
 
 import AppleScrollSection from './AppleScrollSection';
 import BrandsAppleScrollSection from './BrandsAppleScrollSection';

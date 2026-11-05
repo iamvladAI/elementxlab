@@ -151,24 +151,32 @@ export default function BrandsAppleScrollSection({ waveShift = 0 }: { waveShift?
               const clipId = `brand-panel-clip-${brand.id}`;
               return (
                 <div key={brand.id} className="relative w-full h-full overflow-hidden">
-                  <svg
-                    viewBox={`${panelX} 0 1080 1800`}
-                    preserveAspectRatio="xMidYMid slice"
-                    className="absolute inset-0 w-full h-full select-none pointer-events-none block"
-                  >
-                    <defs>
-                      <clipPath id={clipId}>
-                        <rect x={panelX} y={0} width={1080} height={1800} />
-                      </clipPath>
-                    </defs>
-                    <image
-                      href="/brands_composite.jpg"
-                      width={3240}
-                      height={1800}
-                      clipPath={`url(#${clipId})`}
-                      preserveAspectRatio="none"
+                  {brand.id === "mermade" ? (
+                    <img
+                      src="/dsc01951.jpeg"
+                      alt={brand.name}
+                      className="absolute inset-0 w-full h-full object-cover object-center select-none pointer-events-none block"
                     />
-                  </svg>
+                  ) : (
+                    <svg
+                      viewBox={`${panelX} 0 1080 1800`}
+                      preserveAspectRatio="xMidYMid slice"
+                      className="absolute inset-0 w-full h-full select-none pointer-events-none block"
+                    >
+                      <defs>
+                        <clipPath id={clipId}>
+                          <rect x={panelX} y={0} width={1080} height={1800} />
+                        </clipPath>
+                      </defs>
+                      <image
+                        href="/brands_composite.jpg"
+                        width={3240}
+                        height={1800}
+                        clipPath={`url(#${clipId})`}
+                        preserveAspectRatio="none"
+                      />
+                    </svg>
+                  )}
 
                   {/* Затемняющий оверлей строго внутри своей колонки */}
                   <motion.div

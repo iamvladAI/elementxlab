@@ -276,6 +276,10 @@ export default function Home() {
   }, []);
   const waveOffset = useTransform(scrollY, [0, vh200], [0, vh200], { clamp: true });
 
+  // Параллакс (белый экран наступает снизу быстрее, чем уходит фото) + плавное отдаление (zoom-out)
+  const heroParallaxY = useTransform(scrollY, [0, vh], ["0vh", "42vh"]);
+  const heroScale = useTransform(scrollY, [0, vh], [1.16, 1.0]);
+
   useEffect(() => {
     const measure = () => {
       setVh(window.innerHeight);
@@ -490,26 +494,31 @@ export default function Home() {
       </div>
 
       {USE_3D_HERO ? <HeroScroll3D /> : (
-        <div className="relative w-full h-[100vh] bg-black flex flex-col justify-end pb-6 md:pb-8">
-          <div ref={videoRef} className="absolute inset-0 w-full h-full z-0 bg-black">
-            {HERO_MODE === "video" ? (
-              <HeroImageSequence
-                totalFrames={200}
-                fps={30}
-                folder="/scene_first"
-                onReady={() => setHeroReady(true)}
-              />
-            ) : (
-              <img
-                src="/0005.jpg"
-                alt="Element X Lab"
-                fetchPriority="high"
-                loading="eager"
-                decoding="sync"
-                onLoad={() => setHeroReady(true)}
-                className="w-full h-full object-cover object-center select-none pointer-events-none"
-              />
-            )}
+        <div className="relative w-full h-[100vh] overflow-hidden bg-black flex flex-col justify-end pb-6 md:pb-8">
+          <div ref={videoRef} className="absolute inset-0 w-full h-full z-0 bg-black overflow-hidden">
+            <motion.div
+              style={{ y: heroParallaxY, scale: heroScale }}
+              className="w-full h-full origin-center will-change-transform"
+            >
+              {HERO_MODE === "video" ? (
+                <HeroImageSequence
+                  totalFrames={200}
+                  fps={30}
+                  folder="/scene_first"
+                  onReady={() => setHeroReady(true)}
+                />
+              ) : (
+                <img
+                  src="/0005.jpg"
+                  alt="Element X Lab"
+                  fetchPriority="high"
+                  loading="eager"
+                  decoding="sync"
+                  onLoad={() => setHeroReady(true)}
+                  className="w-full h-full object-cover object-center select-none pointer-events-none"
+                />
+              )}
+            </motion.div>
           {/* Теневой градиент снизу, чтобы белый текст всегда хорошо читался */}
           <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
         </div>
@@ -624,7 +633,13 @@ export default function Home() {
           <div className="max-w-[1150px] mx-auto px-6 md:px-8 flex flex-col md:flex-row items-start justify-between gap-12 md:gap-20 relative">
             
             {/* Левая колонка (Текст и Аккордеон) */}
-            <div className="w-full md:w-1/2 flex flex-col relative z-20">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.25 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="w-full md:w-1/2 flex flex-col relative z-20"
+            >
               <div className="flex-shrink-0">
                 <h2 className="text-[clamp(28px,3vw,36px)] font-bold tracking-tight text-black mb-4">
                   Сертифікація GMP
@@ -634,15 +649,21 @@ export default function Home() {
                 </p>
               </div>
               
-              <div className="flex flex-col w-full gap-2 md:gap-3">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, amount: 0.2 }}
+                transition={{ duration: 0.8, delay: 0.15, ease: "easeOut" }}
+                className="flex flex-col w-full gap-2 md:gap-3"
+              >
                  <AccordionItem title="Нотифікація продуктів" content="Надаємо повний пакет документів відповідно до технічного регламенту для легальної реалізації продукції." />
                  <AccordionItem title="Вхідний контроль сировини" content="Кожна партія інгредієнтів проходить лабораторну перевірку на відповідність сертифікатам безпеки та фізико-хімічним показникам." />
                  <AccordionItem title="Аудит постачальників" content="Ми працюємо лише з перевіреними партнерами, які регулярно підтверджують високу якість своєї продукції та етичність виробництва." />
                  <AccordionItem title="Розробка та тестування формули" content="Створюємо ефективні рецептури та проводимо серію стрес-тестів, щоб гарантувати стабільність і дієвість продукту протягом усього терміну придатності." />
                  <AccordionItem title="Контроль якості готової продукції" content="Фінальний зразок з кожного замісу тестується на відповідність еталону за кольором, ароматом, текстурою та рівнем pH." />
                  <AccordionItem title="Перевірка паковання та маркування" content="Ми інспектуємо герметичність тари та точність інформації на етикетках, щоб ви отримали надійний і зрозумілий у використанні продукт." />
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
 
             {/* Правая колонка (Сертификат) */}
             <div className={`w-full md:w-1/2 flex justify-center md:justify-end relative ${isCertElevated ? 'z-[90]' : 'z-20'}`}>
@@ -650,8 +671,8 @@ export default function Home() {
                 ref={certWrapRef}
                 initial={{ opacity: 0, y: 30 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
+                viewport={{ once: true, amount: 0.25 }}
+                transition={{ duration: 0.85, delay: 0.1, ease: "easeOut" }}
                 onClick={handleCertToggle}
                 className={`relative w-full max-w-[450px] ${isCertHovered ? 'cursor-zoom-out' : 'cursor-zoom-in'}`}
               >
@@ -1131,7 +1152,7 @@ const ReviewsAssembly = ({ phaseOffset3 }: { phaseOffset3: number }) => {
              <div className="flex-1 w-full flex items-center justify-start md:ml-[20%] mt-6 md:mt-16 z-20">
                 <Link href="/contact" className="relative group flex animate-pulse-sync-v2">
                   
-                  <span className="relative overflow-hidden flex items-center justify-center bg-zinc-200 text-black px-8 py-4 rounded-[32px] font-semibold text-[clamp(16px,1vw,18px)] uppercase hover:scale-105 active:scale-95 transition-transform duration-300 ease-out">
+                  <span className="relative overflow-hidden flex items-center justify-center bg-zinc-200 text-black px-10 py-5 rounded-[40px] font-semibold text-[clamp(19px,1.2vw,22px)] uppercase hover:scale-105 active:scale-95 transition-transform duration-300 ease-out">
                     
                     {/* Эффект постоянного блика */}
                     <span className="absolute top-0 bottom-0 left-0 w-[150%] bg-gradient-to-r from-transparent via-white to-transparent animate-shine-v2 pointer-events-none z-0 opacity-100"></span>

@@ -435,7 +435,7 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, rawScroll, index 
             product.id === 'face'
               ? 'scale-[1.0] md:scale-[1.12]'
               : product.id === 'perfume'
-              ? 'scale-[1.02] md:scale-[1.13]'
+              ? 'scale-[0.92] md:scale-[1.02]'
               : product.id === 'body'
               ? 'scale-[1.15] md:scale-[1.3]'
               : product.id === 'hair'

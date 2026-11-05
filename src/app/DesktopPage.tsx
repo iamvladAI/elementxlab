@@ -276,9 +276,8 @@ export default function Home() {
   }, []);
   const waveOffset = useTransform(scrollY, [0, vh200], [0, vh200], { clamp: true });
 
-  // Параллакс (белый экран наступает снизу быстрее, чем уходит фото) + плавное отдаление (zoom-out)
-  const heroParallaxY = useTransform(scrollY, [0, vh], ["0vh", "42vh"]);
-  const heroScale = useTransform(scrollY, [0, vh], [1.16, 1.0]);
+  // Параллакс (фото идёт вверх на ~72% скорости скролла, а белый фон наступает быстрее)
+  const heroParallaxY = useTransform(scrollY, [0, vh], ["0vh", "28vh"]);
 
   useEffect(() => {
     const measure = () => {
@@ -497,8 +496,8 @@ export default function Home() {
         <div className="relative w-full h-[100vh] overflow-hidden bg-black flex flex-col justify-end pb-6 md:pb-8">
           <div ref={videoRef} className="absolute inset-0 w-full h-full z-0 bg-black overflow-hidden">
             <motion.div
-              style={{ y: heroParallaxY, scale: heroScale }}
-              className="w-full h-full origin-center will-change-transform"
+              style={{ y: heroParallaxY }}
+              className="w-full h-full will-change-transform"
             >
               {HERO_MODE === "video" ? (
                 <HeroImageSequence

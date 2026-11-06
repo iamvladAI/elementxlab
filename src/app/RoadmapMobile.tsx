@@ -71,10 +71,10 @@ export const RoadmapMobile = ({ blackBlockRef, phaseOffset }: { blackBlockRef: R
 
 
   // Переменная для быстрого переключения (меняем на false, чтобы вернуть черную тему)
-  const isLightMode = false;
+  const isLightMode = true;
 
   return (
-    <section className="w-full -mt-12">
+    <section className="w-full pt-8">
 
       {/* Липкий заголовок */}
       <motion.div 
@@ -87,7 +87,7 @@ export const RoadmapMobile = ({ blackBlockRef, phaseOffset }: { blackBlockRef: R
       </motion.div>
 
       {/* Фон секции */}
-      <div ref={blackBlockRef} className={`w-full ${isLightMode ? 'bg-white' : 'bg-black'} h-[300vh] relative`}>
+      <div ref={blackBlockRef} className={`w-full -mt-[48px] ${isLightMode ? 'bg-white' : 'bg-black'} h-[300vh] relative`}>
         
         {/* Залипающий экран внутри черного блока. */}
         <div className="sticky top-0 w-full h-screen overflow-hidden">
@@ -163,7 +163,7 @@ const StageNode = ({
   });
 
   // Переменная для быстрого переключения Светлой/Темной темы (меняем на false, чтобы вернуть как было)
-  const isLightMode = false;
+  const isLightMode = true;
 
   // Базовый серый пункт
   const opacity = useTransform(progress, (p) => {
@@ -235,7 +235,7 @@ const Tick = ({ index, litLevel }: { index: number, litLevel: MotionValue<number
   const rotate = index * 6;
   // Когда litLevel проходит через индекс этой палочки, она моментально загорается.
   // Это создает эффект непрерывной "заливки" независимо от скорости скролла.
-  const tickColor = useTransform(litLevel, [index, index + 1], ["#222222", "#ffffff"]);
+  const tickColor = useTransform(litLevel, [index, index + 1], ["#e4e4e7", "#000000"]);
   
   return (
     <div 
@@ -267,7 +267,7 @@ const Dial = ({ activeStep, progress }: { activeStep: number, progress: MotionVa
   return (
     <motion.div 
       style={{ opacity: dialOpacity }}
-      className="absolute right-4 md:right-[5vw] lg:right-[8vw] xl:right-[10vw] top-1/2 -translate-y-1/2 w-[160px] h-[160px] hidden md:block z-50 pointer-events-none"
+      className="hidden"
     >
       
       {/* ИКОНКА В ЦЕНТРЕ */}
@@ -282,7 +282,7 @@ const Dial = ({ activeStep, progress }: { activeStep: number, progress: MotionVa
             src={`/step${activeStep + 1}.svg`}
             alt="Step Icon"
             className="w-12 h-12"
-            style={{ filter: 'invert(100%) brightness(200%)' }}
+            style={{ filter: activeStep === 1 || activeStep === 3 ? 'none' : 'brightness(0)' }}
           />
         )}
       </div>

@@ -187,10 +187,10 @@ export default function AppleScrollSection({ appleY = 0 }: AppleScrollSectionPro
     <div ref={containerRef} className="relative w-full h-[430vh] bg-transparent z-20">
       <div className="sticky top-0 w-full h-screen overflow-hidden flex items-center justify-center">
         
-        {/* ЗАГОЛОВОК 500+ ФОРМУЛ (ровняется с логотипом на top-10 h-12, замораживается и уезжает вверх вместе с «Для обличчя») */}
+        {/* ЗАГОЛОВОК 500+ ФОРМУЛ (на мобилке ниже логотипа top-[86px], на десктопе на линии логотипа md:top-10 h-12) */}
         <motion.div
           style={{ y: headingY, opacity: headingOpacity }}
-          className="absolute top-10 inset-x-0 h-12 flex items-center justify-center z-30 pointer-events-none px-6 md:px-8 will-change-transform"
+          className="absolute top-[86px] md:top-10 inset-x-0 h-12 flex items-center justify-center z-30 pointer-events-none px-6 md:px-8 will-change-transform"
         >
           <h2 className="text-[clamp(28px,3.2vw,42px)] font-bold tracking-tight text-black leading-none flex justify-center items-center drop-shadow-sm m-0">
             <span className="inline-flex justify-end w-[2.2em] md:w-[2.4em] tabular-nums">
@@ -397,22 +397,22 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, rawScroll, index 
 
   return (
     <motion.div 
-      className="absolute inset-0 flex flex-row items-center justify-center px-4 md:px-10 pointer-events-none"
+      className="absolute inset-0 flex flex-col-reverse md:flex-row items-center justify-center px-5 md:px-10 pointer-events-none"
     >
-      {/* ЛЕВАЯ ЧАСТЬ: Текст */}
+      {/* ЛЕВАЯ ЧАСТЬ (на мобилке — снизу): Текст */}
       <motion.div 
-        className="w-1/2 flex flex-col items-start gap-3 pl-[8vw] md:pl-[12vw] z-30 will-change-transform"
+        className="w-full md:w-1/2 flex flex-col items-start gap-2 md:gap-3 pl-2 md:pl-[12vw] z-30 will-change-transform mt-3 md:mt-0"
         style={{ y: yText, opacity: opacityText }}
       >
-        <h2 className="text-[clamp(28px,3.5vw,48px)] font-bold text-black tracking-tight drop-shadow-sm">
+        <h2 className="text-[clamp(24px,3.5vw,48px)] font-bold text-black tracking-tight drop-shadow-sm">
           {product.title}
         </h2>
         
-        <ul className="grid grid-cols-[auto_auto] gap-x-6 md:gap-x-10 gap-y-2 mt-2 w-max">
+        <ul className="grid grid-cols-2 md:grid-cols-[auto_auto] gap-x-4 md:gap-x-10 gap-y-1.5 md:gap-y-2 mt-1 md:mt-2 w-full md:w-max">
           {product.tags.map((tag: string) => (
             <li 
               key={tag} 
-              className="text-[clamp(13px,1.1vw,17px)] text-zinc-600 font-medium tracking-tight leading-snug"
+              className="text-[clamp(12px,1.1vw,17px)] text-zinc-600 font-medium tracking-tight leading-snug"
             >
               &bull; {tag}
             </li>
@@ -420,9 +420,9 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, rawScroll, index 
         </ul>
       </motion.div>
 
-      {/* ПРАВАЯ ЧАСТЬ: Видео с аппаратным декодированием (как на apple.com) */}
+      {/* ПРАВАЯ ЧАСТЬ (на мобилке — сверху): Видео с аппаратным декодированием */}
       <motion.div 
-        className="w-1/2 flex items-center justify-center relative z-20 mb-[10vh] will-change-transform"
+        className="w-full md:w-1/2 flex items-center justify-center relative z-20 mb-2 md:mb-[10vh] -mt-[4vh] md:mt-0 will-change-transform"
         style={{ y: yImage, opacity: opacityImage }}
       >
         <video
@@ -431,16 +431,16 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, rawScroll, index 
           muted
           playsInline
           preload="auto"
-          className={`w-[140%] max-w-[800px] xl:max-w-[1000px] origin-center object-contain mix-blend-multiply translate-x-[-10%] ${
+          className={`w-[100%] md:w-[140%] max-w-[390px] md:max-w-[800px] xl:max-w-[1000px] origin-center object-contain mix-blend-multiply translate-x-0 md:translate-x-[-10%] ${
             product.id === 'face'
-              ? 'scale-[1.0] md:scale-[1.12]'
+              ? 'scale-[1.28] md:scale-[1.12]'
               : product.id === 'perfume'
-              ? 'scale-[0.92] md:scale-[1.02]'
+              ? 'scale-[1.18] md:scale-[1.02]'
               : product.id === 'body'
-              ? 'scale-[1.15] md:scale-[1.3]'
+              ? 'scale-[1.42] md:scale-[1.3]'
               : product.id === 'hair'
-              ? 'scale-[1.12] md:scale-[1.28]'
-              : 'scale-[1.3] md:scale-[1.5]'
+              ? 'scale-[1.38] md:scale-[1.28]'
+              : 'scale-[1.45] md:scale-[1.5]'
           } ${
             product.id === 'hair' ? 'translate-y-[8%]' : ''
           }`}

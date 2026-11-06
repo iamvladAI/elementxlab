@@ -1,6 +1,7 @@
 "use client";
 import Link from 'next/link';
 import HeroImageSequence from './HeroImageSequence';
+import AppleScrollSection from './AppleScrollSection';
 
 // ПЕРЕКЛЮЧАТЕЛЬ ЗАСТАВКИ: "photo" — статичное фото (/0005.png) | "video" — анимация 200 кадров (/scene_first)
 const HERO_MODE: "photo" | "video" = "photo";
@@ -154,6 +155,13 @@ export default function Home() {
   const [isHoveringBrand, setIsHoveringBrand] = useState(false);
   const [hoveredBrandIdx, setHoveredBrandIdx] = useState<number | null>(null);
 
+  const { scrollY } = useScroll();
+  const [vh, setVh] = useState(800);
+  useEffect(() => {
+    setVh(window.innerHeight);
+  }, []);
+  const heroParallaxY = useTransform(scrollY, [0, vh], ["0vh", "28vh"]);
+
   useEffect(() => {
     const measure = () => {
       if (roadmapRef.current) {
@@ -295,16 +303,24 @@ export default function Home() {
 
       {/* TRACK 1: Видео и Главный Текст */}
       <div className="relative w-full h-[100vh] bg-black flex flex-col justify-end pb-8 overflow-hidden">
-        <div ref={videoRef} className="absolute inset-0 w-full h-full z-0 bg-black">
-          {HERO_MODE === "video" ? (
-            <HeroImageSequence totalFrames={200} fps={30} folder="/scene_first" />
-          ) : (
-            <img
-              src="/0005.png"
-              alt="Element X Lab"
-              className="w-full h-full object-cover object-center select-none pointer-events-none"
-            />
-          )}
+        <div ref={videoRef} className="absolute inset-0 w-full h-full z-0 bg-black overflow-hidden">
+          <motion.div
+            style={{ y: heroParallaxY }}
+            className="w-full h-full will-change-transform"
+          >
+            {HERO_MODE === "video" ? (
+              <HeroImageSequence totalFrames={200} fps={30} folder="/scene_first" />
+            ) : (
+              <img
+                src="/0005.jpg"
+                alt="Element X Lab"
+                fetchPriority="high"
+                loading="eager"
+                decoding="sync"
+                className="w-full h-full object-cover object-center select-none pointer-events-none"
+              />
+            )}
+          </motion.div>
           {/* Теневой градиент снизу, чтобы белый текст всегда хорошо читался */}
           <div className="absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
         </div>
@@ -338,7 +354,7 @@ export default function Home() {
       </section>
 
       {/* 5. СТАТИСТИКА */}
-      <section className="max-w-[1150px] mx-auto px-6 md:px-8 pb-10 border-t border-zinc-200 pt-7 overflow-hidden">
+      <section className="max-w-[1150px] mx-auto px-6 md:px-8 pb-2 border-t border-zinc-200 pt-7 overflow-hidden">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -361,220 +377,118 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* 6. ФОРМУЛЫ (АВТОМАТИЧЕСКАЯ РАСПАКОВКА + ИНТЕРАКТИВ ПО НАВЕДЕНИЮ) */}
-      <section 
-        className="w-full bg-white relative pt-10 flex flex-col items-center justify-between h-[74vh]"
-        onClick={() => setActiveId(null)}
-      >
-        
-        {/* Заголовок */}
-        <div className="absolute top-4 md:top-8 w-full max-w-[1150px] px-6 md:px-8 flex justify-center z-30">
-          <h2 className="text-[clamp(28px,4.5vw,50px)] font-bold tracking-tight text-black leading-tight flex justify-center items-center drop-shadow-md">
-            <span className="inline-flex justify-end w-[2.2em] md:w-[2.5em] tabular-nums">
-              <AnimatedCounter from={1} to={500} duration={1.5} />
-            </span>
-            <span className="ml-1 mr-2 md:mr-3">+</span>
-            <WipeText text="перевірених формул" />
-          </h2>
-        </div>
-
-        {/* Интерактивная зона с баночками и списками */}
-        <motion.div 
-          className="relative flex items-end justify-center w-full h-[74vh] z-20 mt-auto pointer-events-none"
-          onViewportEnter={() => {
-            if (flightTimeout.current) clearTimeout(flightTimeout.current);
-            setIsFlownIn(false);
-            flightTimeout.current = setTimeout(() => setIsFlownIn(true), 1200);
-          }}
-          onViewportLeave={() => {
-            if (flightTimeout.current) clearTimeout(flightTimeout.current);
-            setIsFlownIn(false);
-          }}
-          viewport={{ once: false, amount: 0.15 }}
-        >
-          
-          {/* ОБЛАКА ТЕГОВ (СПИСКИ), появляются строго на местах X и Y других баночек */}
-          {FORMULA_CATEGORIES.map(cat => (
-            <motion.div
-              key={`list-${cat.id}`}
-              className="absolute flex flex-wrap justify-center content-center gap-2 md:gap-3 w-[46vw] max-w-[400px] h-fit z-40 pointer-events-none"
-              // ВАЖНО: передаем координаты напрямую во Framer Motion, чтобы он их не стер при анимации scale!
-              initial={{ opacity: 0, scale: 0.9, x: cat.listX, y: cat.listY, filter: "blur(4px)" }}
-              animate={{
-                opacity: activeId === cat.id ? 1 : 0,
-                scale: activeId === cat.id ? 1 : 0.9,
-                x: cat.listX, // Удерживаем список на правильном месте (слева или справа от активной банки)
-                y: cat.listY,
-                filter: activeId === cat.id ? "blur(0px)" : "blur(4px)"
-              }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-            >
-              {cat.items.map((item, idx) => {
-                const rotation = ROTATIONS[idx % ROTATIONS.length];
-                return (
-                  <div 
-                    key={item} 
-                    className="bg-[#1a1a1a] text-white px-[clamp(12px,1.2vw,16px)] py-[clamp(6px,0.6vw,8px)] rounded-full text-[clamp(12px,1.1vw,15px)] font-medium shadow-xl text-center leading-tight whitespace-nowrap transition-transform duration-300 hover:scale-105"
-                    style={{ transform: `rotate(${rotation}deg)` }} // Только наклон, без сдвига координат
-                  >
-                    {item}
-                  </div>
-                );
-              })}
-            </motion.div>
-          ))}
-
-          {/* БАНОЧКИ */}
-          {FORMULA_CATEGORIES.map(cat => (
-            <div 
-              key={cat.id}
-              className="absolute flex flex-col items-center justify-end h-[45vh] pointer-events-none"
-              style={{ transform: `translate(${cat.x}, ${cat.y})` }}
-            >
-              {/* Надпись категории */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: false, amount: 0.15 }}
-                transition={{ duration: 0.4, delay: 1.2 }}
-                className="mb-6 z-10 w-full flex justify-center"
-              >
-                <motion.span
-                  animate={{
-                    opacity: activeId === null || activeId === cat.id ? 1 : 0.2,
-                    filter: activeId === null || activeId === cat.id ? "blur(0px)" : "blur(4px)"
-                  }}
-                  transition={{ duration: 0.3 }}
-                  className="text-black font-bold text-[clamp(14px,1.5vw,20px)] whitespace-nowrap drop-shadow-md text-center pointer-events-none"
-                >
-                  {cat.title}
-                </motion.span>
-              </motion.div>
-
-              {/* Картинка: Анимация выезда (whileInView) + Анимация наведения (animate) */}
-              <motion.div
-                onClick={(e) => {
-                  e.stopPropagation(); // Чтобы клик не улетел в фон и не закрыл банку сразу же
-                  if (isFlownIn) {
-                    setActiveId(prev => (prev === cat.id ? null : cat.id));
-                  }
-                }}
-                className="relative cursor-pointer pointer-events-auto origin-bottom"
-                animate={{
-                  opacity: activeId === null || activeId === cat.id ? 1 : 0.15,
-                  filter: activeId === null || activeId === cat.id ? "blur(0px)" : "blur(6px)",
-                  scale: activeId === cat.id ? 1.1 : 1
-                }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-              >
-                <motion.img 
-                  initial={{ x: cat.initialX, y: cat.initialY, rotate: cat.rotate }}
-                  animate={{ x: 0, y: 0, rotate: 0 }}
-                  transition={{ duration: 1.2, ease: "easeOut", delay: 0.2 }}
-                  src={cat.img} 
-                  alt={cat.title} 
-                  className={`h-[22vh] w-auto object-contain drop-shadow-2xl origin-bottom ${cat.imgScale}`} 
-                />
-              </motion.div>
-            </div>
-          ))}
-        </motion.div>
-      </section>
+      {/* 6. ФОРМУЛЫ (APPLE SCROLL С 3D-БАНОЧКАМИ) */}
+      <div className="relative z-[50] -mt-12">
+        <AppleScrollSection />
+      </div>
 
 
 
       {/* БРЕНДЫ В СТОЛБИК НА МОБИЛКЕ */}
-      <section className="w-full bg-white relative z-20 flex flex-col pt-2 pb-0">
+      <section className="w-full bg-white relative z-20 flex flex-col -mt-[28vh] pt-0 pb-6">
         
-        <div className="w-full flex justify-center z-30 mb-0 px-5">
+        <div className="w-full flex justify-center z-30 mb-5 px-5">
           <h2 className="text-[clamp(28px,4vw,42px)] font-bold tracking-tight text-center text-black">
             Наші бренди
           </h2>
         </div>
 
-        <div className="w-full flex flex-col z-20">
-          
-          {/* 1. Replique */}
-          <div 
-            className="w-full h-[35vh] relative flex flex-col items-center justify-center p-6 border-b border-zinc-200 cursor-pointer overflow-hidden"
-            onMouseEnter={() => { setIsHoveringBrand(true); setHoveredBrandIdx(0); }}
-            onMouseLeave={() => { setIsHoveringBrand(false); setHoveredBrandIdx(null); }}
-          >
-            <img 
-              src="/DSC09625.jpg" 
-              alt="Replique" 
-              className={`absolute inset-0 w-full h-full object-cover object-bottom transition-opacity duration-300 ease-in-out z-10 pointer-events-none rounded-[24px] ${hoveredBrandIdx === 0 ? 'opacity-100' : 'opacity-0'}`} 
-            />
-            
-            <div className="relative z-40 w-[60%] max-w-[250px] mb-4 flex justify-center items-center">
-              <img 
-                src="/replique.svg" 
-                alt="Replique Logo" 
-                className={`w-full h-auto object-contain transition-all duration-300 pointer-events-none ${hoveredBrandIdx === 0 ? 'scale-110 drop-shadow-lg' : ''}`} 
-              />
-            </div>
-            
-            <div className="relative z-40 w-full text-center max-w-[350px]">
-              <p className={`text-[13px] sm:text-[15px] transition-opacity duration-300 leading-relaxed text-zinc-600 ${hoveredBrandIdx === 0 ? 'opacity-0' : 'opacity-100'}`}>
-                Колекція концептуальних парфумерних композицій, що охоплює широку палітру ароматів — від легких свіжих та квіткових до глибоких гурманських.
-              </p>
-            </div>
-          </div>
+        <div className="w-full flex flex-col gap-4 px-4 z-20">
+          {[
+            {
+              id: "replique",
+              name: "Replique",
+              logo: "/replique.svg",
+              logoClass: "w-[55%] max-w-[200px]",
+              description: "Колекція концептуальних парфумерних композицій, що охоплює широку палітру ароматів — від легких свіжих та квіткових до глибоких гурманських.",
+              panelX: 0,
+            },
+            {
+              id: "mermade",
+              name: "Mermade",
+              logo: "/marmade.svg",
+              logoClass: "w-[58%] max-w-[210px]",
+              description: "Яскраві засоби для догляду за собою та подорожей, що створюють настрій, дарують емоції та перетворюють б'юті-рутину на справжнє задоволення.",
+              imgSrc: "/dsc01951.jpeg",
+            },
+            {
+              id: "hydrasence",
+              name: "Hydrasence",
+              logo: "/hydrasence.svg",
+              logoClass: "w-[65%] max-w-[230px] scale-[1.2]",
+              description: "Інноваційні рішення для базового догляду за шкірою та волоссям, серед яких — спеціалізована серія стимуляторів росту волосся з екстрактом розмарину.",
+              panelX: 2160,
+            },
+          ].map((brand, idx) => {
+            const isSelected = hoveredBrandIdx === idx;
+            const clipId = `mobile-brand-clip-${brand.id}`;
+            return (
+              <div
+                key={brand.id}
+                onClick={() => setHoveredBrandIdx(isSelected ? null : idx)}
+                className="w-full h-[54vh] min-h-[400px] relative flex flex-col items-center justify-between p-6 rounded-[28px] overflow-hidden shadow-lg cursor-pointer bg-zinc-950"
+              >
+                {/* Фоновое фото бренда (всегда видно) */}
+                {brand.imgSrc ? (
+                  <img
+                    src={brand.imgSrc}
+                    alt={brand.name}
+                    className="absolute inset-0 w-full h-full object-cover object-center select-none pointer-events-none"
+                  />
+                ) : (
+                  <svg
+                    viewBox={`${brand.panelX} 0 1080 1800`}
+                    preserveAspectRatio="xMidYMid slice"
+                    className="absolute inset-0 w-full h-full select-none pointer-events-none block"
+                  >
+                    <defs>
+                      <clipPath id={clipId}>
+                        <rect x={brand.panelX} y={0} width={1080} height={1800} />
+                      </clipPath>
+                    </defs>
+                    <image
+                      href="/brands_composite.jpg"
+                      width={3240}
+                      height={1800}
+                      clipPath={`url(#${clipId})`}
+                      preserveAspectRatio="none"
+                    />
+                  </svg>
+                )}
 
-          {/* 2. Mermade */}
-          <div 
-            className="w-full h-[35vh] relative flex flex-col items-center justify-center p-6 border-b border-zinc-200 cursor-pointer overflow-hidden"
-            onMouseEnter={() => { setIsHoveringBrand(true); setHoveredBrandIdx(1); }}
-            onMouseLeave={() => { setIsHoveringBrand(false); setHoveredBrandIdx(null); }}
-          >
-            <img 
-              src="/brand1.jpg" 
-              alt="Mermade" 
-              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ease-in-out z-10 pointer-events-none rounded-[24px] ${hoveredBrandIdx === 1 ? 'opacity-100' : 'opacity-0'}`} 
-            />
-            
-            <div className="relative z-40 w-[60%] max-w-[250px] mb-4 flex justify-center items-center">
-              <img 
-                src="/marmade.svg" 
-                alt="Mermade Logo" 
-                className={`w-full h-auto object-contain transition-all duration-300 pointer-events-none ${hoveredBrandIdx === 1 ? 'scale-110 drop-shadow-lg' : ''}`} 
-              />
-            </div>
-            
-            <div className="relative z-40 w-full text-center max-w-[350px]">
-              <p className={`text-[13px] sm:text-[15px] transition-opacity duration-300 leading-relaxed text-zinc-600 ${hoveredBrandIdx === 1 ? 'opacity-0' : 'opacity-100'}`}>
-                Яскраві засоби для догляду за собою та подорожей, що створюють настрій, дарують емоції та перетворюють б'юті-рутину на справжнє задоволення.
-              </p>
-            </div>
-          </div>
+                {/* Мягкое затемнение сверху и снизу, чтобы белый логотип и текст отлично читались (при тапе можно открыть чистую фотку) */}
+                <div
+                  className={`absolute inset-0 bg-gradient-to-b from-black/65 via-black/20 to-black/80 transition-opacity duration-300 pointer-events-none z-10 ${
+                    isSelected ? "opacity-0" : "opacity-100"
+                  }`}
+                />
 
-          {/* 3. Hydrasence */}
-          <div 
-            className="w-full h-[35vh] relative flex flex-col items-center justify-center p-6 cursor-pointer overflow-hidden"
-            onMouseEnter={() => { setIsHoveringBrand(true); setHoveredBrandIdx(2); }}
-            onMouseLeave={() => { setIsHoveringBrand(false); setHoveredBrandIdx(null); }}
-          >
-            <img 
-              src="/brand3_v2.jpg" 
-              alt="Hydrasence" 
-              className={`absolute inset-0 w-full h-full object-cover object-[center_30%] transition-opacity duration-300 ease-in-out z-10 pointer-events-none rounded-[24px] ${hoveredBrandIdx === 2 ? 'opacity-100' : 'opacity-0'}`} 
-            />
-            
-            <div className="relative z-40 w-[60%] max-w-[250px] mb-4 flex justify-center items-center">
-              <img 
-                src="/hydrasence.svg" 
-                alt="Hydrasence Logo" 
-                className={`w-full h-auto object-contain transition-all duration-300 pointer-events-none ${hoveredBrandIdx === 2 ? 'scale-125 drop-shadow-lg' : 'scale-110'}`} 
-              />
-            </div>
-            
-            <div className="relative z-40 w-full text-center max-w-[350px]">
-              <p className={`text-[13px] sm:text-[15px] transition-opacity duration-300 leading-relaxed text-zinc-600 ${hoveredBrandIdx === 2 ? 'opacity-0' : 'opacity-100'}`}>
-                Інноваційні рішення для базового догляду за шкірою та волоссям, серед яких — спеціалізована серія стимуляторів росту волосся з екстрактом розмарину.
-              </p>
-            </div>
-          </div>
-          
+                {/* Логотип сверху */}
+                <div
+                  className={`relative z-20 flex justify-center items-center pt-2 transition-opacity duration-300 ${brand.logoClass} ${
+                    isSelected ? "opacity-0" : "opacity-100"
+                  }`}
+                >
+                  <img
+                    src={brand.logo}
+                    alt={`${brand.name} Logo`}
+                    className="w-full h-auto object-contain brightness-0 invert drop-shadow-[0_4px_14px_rgba(0,0,0,0.6)] pointer-events-none"
+                  />
+                </div>
+
+                {/* Описание снизу */}
+                <div
+                  className={`relative z-20 w-full text-center max-w-[340px] pb-1 transition-opacity duration-300 ${
+                    isSelected ? "opacity-0" : "opacity-100"
+                  }`}
+                >
+                  <p className="text-[13px] sm:text-[14px] leading-relaxed text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]">
+                    {brand.description}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -582,7 +496,7 @@ export default function Home() {
       <RoadmapMobile blackBlockRef={roadmapRef} phaseOffset={phaseOffset} />
 
       {/* 2) БЛОК "О ПРОИЗВОДСТВЕ" + ЕДИНАЯ ВОЛНА */}
-      <div className="w-full bg-white relative">
+      <div className="w-full relative -mt-[34vh]">
         
         {/* ЕДИНАЯ ВОЛНА СЛЕВА ДЛЯ ВСЕХ НИЖНИХ СЕКЦИЙ */}
         <div className="absolute top-0 bottom-0 left-[-30px] md:left-[-50px] lg:left-[-70px] w-[350px] pointer-events-none mix-blend-difference hidden md:block z-10">
@@ -608,14 +522,20 @@ export default function Home() {
           <div className="max-w-[1150px] mx-auto px-6 md:px-8 flex flex-col md:grid md:grid-cols-2 items-start gap-8 md:gap-x-20 relative z-20">
             
             {/* Title & Text */}
-            <div className="w-full order-1 flex flex-col">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="w-full order-1 flex flex-col"
+            >
               <h2 className="text-[clamp(28px,3vw,36px)] font-bold tracking-tight text-black mb-4">
                 Сертифікація GMP
               </h2>
               <p className="text-[clamp(14px,1.2vw,15px)] text-zinc-500 leading-relaxed max-w-[500px]">
                 Наше виробництво сертифіковане за міжнародним стандартом <span className="underline underline-offset-4 decoration-zinc-300">GMP (Good Manufacturing Practice)</span>. Це «золотий стандарт» індустрії, який гарантує суворий контроль на кожному етапі: від відбору сировини та умов зберігання до лабораторних випробувань готового продукту.
               </p>
-            </div>
+            </motion.div>
 
             {/* Certificate (Mobile: middle, Desktop: right column) */}
             <div className="w-full flex justify-center md:justify-end order-2 md:col-start-2 md:row-span-2">
@@ -631,14 +551,20 @@ export default function Home() {
             </div>
 
             {/* Accordion (Mobile: bottom, Desktop: left column) */}
-            <div className="w-full flex flex-col gap-2 md:gap-3 order-3 md:col-start-1 md:mt-8">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+              className="w-full flex flex-col gap-2 md:gap-3 order-3 md:col-start-1 md:mt-8"
+            >
                  <AccordionItem title="Нотифікація продуктів" content="Надаємо повний пакет документів відповідно до технічного регламенту для легальної реалізації продукції." />
                  <AccordionItem title="Вхідний контроль сировини" content="Кожна партія інгредієнтів проходить лабораторну перевірку на відповідність сертифікатам безпеки та фізико-хімічним показникам." />
                  <AccordionItem title="Аудит постачальників" content="Ми працюємо лише з перевіреними партнерами, які регулярно підтверджують високу якість своєї продукції та етичність виробництва." />
                  <AccordionItem title="Розробка та тестування формули" content="Створюємо ефективні рецептури та проводимо серію стрес-тестів, щоб гарантувати стабільність і дієвість продукту протягом усього терміну придатності." />
                  <AccordionItem title="Контроль якості готової продукції" content="Фінальний зразок з кожного замісу тестується на відповідність еталону за кольором, ароматом, текстурою та рівнем pH." />
                  <AccordionItem title="Перевірка паковання та маркування" content="Ми інспектуємо герметичність тари та точність інформації на етикетках, щоб ви отримали надійний і зрозумілий у використанні продукт." />
-            </div>
+            </motion.div>
 
           </div>
         </section>
@@ -662,7 +588,7 @@ export default function Home() {
         <CollageMobile />
 
         {/* ЗАЗИРНІТЬ ЗА ЛАШТУНКИ */}
-        <section className="w-full pt-2 pb-4 relative z-20 flex flex-col items-center">
+        <section className="w-full pt-2 pb-1 relative z-20 flex flex-col items-center">
           <div className="max-w-[1150px] mx-auto px-6 md:px-8 w-full">
             <div className="flex flex-col md:flex-row items-start md:items-start justify-between gap-6">
               <motion.div 
@@ -774,28 +700,72 @@ const ReviewsAssembly = ({ phaseOffset3 }: { phaseOffset3: number }) => {
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
-    offset: ["start start", "end end"]
+    offset: ["start start", "end 92%"]
   });
 
-  // Карточка 1 (Черная, самая большая) уменьшается
-  const scale1 = useTransform(scrollYProgress, [0, 0.5], [1, 0.9]);
+  // Без пружины: карточки жестко привязаны к скроллу
+  const smoothProgress = scrollYProgress;
 
-  // Карточка 2 (Серый мет) выезжает и тоже чуть уменьшается
-  const y2 = useTransform(scrollYProgress, [0, 0.5], ["100vh", "0vh"]);
-  const scale2 = useTransform(scrollYProgress, [0.5, 1], [1, 0.95]);
+  const smoothStep = (t: number) => {
+    const c = Math.max(0, Math.min(1, t));
+    return 0.35 * c + 0.65 * (c * c * (3 - 2 * c));
+  };
 
-  // Карточка 3 просто выезжает
-  const y3 = useTransform(scrollYProgress, [0.5, 1], ["100vh", "0vh"]);
+  // Карточка 1 уменьшается, а её текст уходит в блюр ТОЛЬКО когда секция уже закреплена и поднимается Карточка 2
+  const scale1 = useTransform(smoothProgress, (p) => {
+    const t = smoothStep((p - 0.02) / (0.48 - 0.02));
+    return 1 - t * 0.1;
+  });
+  const contentOpacity1 = useTransform(smoothProgress, (p) => {
+    if (containerRef.current && containerRef.current.getBoundingClientRect().top > 5) return 1;
+    if (p <= 0.05) return 1;
+    const t = smoothStep((p - 0.05) / (0.46 - 0.05));
+    return 1 - t * 0.45;
+  });
+  const contentBlur1 = useTransform(smoothProgress, (p) => {
+    if (containerRef.current && containerRef.current.getBoundingClientRect().top > 5) return "blur(0px)";
+    if (p <= 0.05) return "blur(0px)";
+    const t = smoothStep((p - 0.05) / (0.46 - 0.05));
+    return `blur(${(t * 4.5).toFixed(2)}px)`;
+  });
+
+  // Карточка 2 выезжает и уменьшается, а её текст уходит в блюр по мере подъема Карточки 3
+  const y2 = useTransform(smoothProgress, (p) => {
+    const t = smoothStep((p - 0.02) / (0.48 - 0.02));
+    return `${(1 - t) * 100}vh`;
+  });
+  const scale2 = useTransform(smoothProgress, (p) => {
+    const t = smoothStep((p - 0.5) / (1.0 - 0.5));
+    return 1 - t * 0.05;
+  });
+  const contentOpacity2 = useTransform(smoothProgress, (p) => {
+    if (containerRef.current && containerRef.current.getBoundingClientRect().top > 5) return 1;
+    if (p <= 0.53) return 1;
+    const t = smoothStep((p - 0.53) / (0.98 - 0.53));
+    return 1 - t * 0.45;
+  });
+  const contentBlur2 = useTransform(smoothProgress, (p) => {
+    if (containerRef.current && containerRef.current.getBoundingClientRect().top > 5) return "blur(0px)";
+    if (p <= 0.53) return "blur(0px)";
+    const t = smoothStep((p - 0.53) / (0.98 - 0.53));
+    return `blur(${(t * 4.5).toFixed(2)}px)`;
+  });
+
+  // Камера отлипает за ~полсантиметра до того, как Карточка 3 доедет до конца
+  const y3 = useTransform(smoothProgress, (p) => {
+    const t = smoothStep((p - 0.5) / (1.0 - 0.5));
+    return `${(1 - t) * 100}vh`;
+  });
   
   return (
     <>
-    <section ref={containerRef} className="w-full h-[300vh] relative z-20 bg-white">
+    <section ref={containerRef} className="w-full h-[300vh] relative z-20 bg-transparent -mt-14">
       {/* Прибиваем экран (заморозка) */}
       <div className="sticky top-0 w-full h-screen overflow-hidden flex flex-col items-center justify-center">
 
         {/* ЗАГОЛОВОК ВІДГУКІВ */}
-        <div className="absolute top-[90px] w-full px-6 md:px-8 text-center z-30 pointer-events-none">
-          <h2 className="text-[clamp(28px,3vw,36px)] font-bold tracking-tight text-black">
+        <div className="absolute top-[84px] w-full px-6 md:px-8 text-center z-30 pointer-events-none">
+          <h2 className="text-[clamp(24px,3vw,36px)] font-bold tracking-tight text-black leading-tight">
             Від ідеї до полиць: досвід наших партнерів
           </h2>
         </div>
@@ -820,7 +790,7 @@ const ReviewsAssembly = ({ phaseOffset3 }: { phaseOffset3: number }) => {
         </div>
 
         {/* БЕГУЩАЯ СТРОКА ЛОГОТИПОВ (z-index 0, под волной) */}
-        <div className="absolute bottom-0 md:bottom-[4vh] w-full overflow-hidden z-0">
+        <div className="absolute bottom-[2vh] md:bottom-[4vh] w-full overflow-hidden z-0">
           <style>{`
             @keyframes marquee-infinite-right {
               0% { transform: translateX(-100%); }
@@ -853,6 +823,7 @@ const ReviewsAssembly = ({ phaseOffset3 }: { phaseOffset3: number }) => {
                     key={i} 
                     src={logo} 
                     alt="Partner Logo" 
+                    loading="lazy"
                     className="h-6 md:h-10 object-contain"
                     style={{ 
                       filter: logo.includes('makeup')
@@ -867,65 +838,90 @@ const ReviewsAssembly = ({ phaseOffset3 }: { phaseOffset3: number }) => {
           </div>
         </div>
 
-        {/* Карточка 1 (Make Up) - ЧЕРНАЯ (z-20) */}
+        {/* Карточка 1 (Make Up) - Теплое матовое стекло (z-20) */}
         <motion.div 
-          style={{ scale: scale1, top: '190px', transformOrigin: 'top center' }}
-          className="absolute w-full px-6 md:px-8 flex justify-center z-20" 
+          style={{ scale: scale1, top: '156px', transformOrigin: 'top center' }}
+          className="absolute w-full px-5 md:px-8 flex justify-center z-20" 
         >
-          <div className="w-full max-w-[1000px] h-[55vh] md:h-[450px] py-10 px-8 md:px-16 bg-black rounded-[40px] shadow-md flex flex-col items-center justify-center gap-6 md:gap-8 border border-white/10">
-            <p className="text-[clamp(14px,1.5vw,18px)] font-bold text-center leading-relaxed text-white max-w-[850px]">
-              "Ми тривалий час співпрацюємо з ElementXLab у напрямку контрактного виробництва косметики й можемо впевнено назвати їх надійним виробничим партнером. Команда демонструє високий рівень сервісу, експертність і гнучкість на всіх етапах — від розробки до відвантаження продукції. ElementX Lab стабільно забезпечує якість, дотримання термінів і оптимальне співвідношення ціни та результату."
-            </p>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 md:w-14 md:h-14 bg-white rounded-2xl flex flex-col items-center justify-center shadow-sm border border-zinc-200">
-                <div className="w-[4px] h-[4px] md:w-[6px] md:h-[6px] bg-black mb-[2px] rounded-full"></div>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className="scale-75">
-                   <path d="M6 4v8a6 6 0 0 0 12 0V4" />
-                </svg>
+          <div
+            style={{
+              backgroundColor: 'rgba(252, 251, 249, 0.65)',
+            }}
+            className="w-full max-w-[1000px] h-[58vh] md:h-[450px] py-8 px-6 md:px-16 backdrop-blur-md rounded-[36px] shadow-[0_24px_60px_rgba(28,25,23,0.07),inset_0_1.5px_1px_rgba(255,255,255,0.98),inset_0_-1px_1px_rgba(0,0,0,0.03)] border border-[#E5E2DC]/80 flex flex-col items-center justify-center"
+          >
+            <motion.div
+              style={{ opacity: contentOpacity1, filter: contentBlur1 }}
+              className="flex flex-col items-center justify-center gap-5 md:gap-8 w-full"
+            >
+              <p className="text-[clamp(14px,1.5vw,18px)] font-normal text-center leading-relaxed text-zinc-900 max-w-[850px]">
+                "Ми тривалий час співпрацюємо з ElementXLab у напрямку контрактного виробництва косметики й можемо впевнено назвати їх надійним виробничим партнером. Команда демонструє високий рівень сервісу, експертність і гнучкість на всіх етапах — від розробки до відвантаження продукції. ElementX Lab стабільно забезпечує якість, дотримання термінів і оптимальне співвідношення ціни та результату."
+              </p>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-white rounded-2xl flex flex-col items-center justify-center shadow-sm border border-zinc-200">
+                  <div className="w-[4px] h-[4px] md:w-[6px] md:h-[6px] bg-black mb-[2px] rounded-full"></div>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" className="scale-75">
+                     <path d="M6 4v8a6 6 0 0 0 12 0V4" />
+                  </svg>
+                </div>
+                <div className="flex flex-col text-left">
+                  <span className="font-bold text-black text-base md:text-lg">Максим Богдюк</span>
+                  <span className="text-zinc-600 text-xs md:text-sm">Make Up</span>
+                </div>
               </div>
-              <div className="flex flex-col text-left">
-                <span className="font-bold text-white text-base md:text-lg">Максим Богдюк</span>
-                <span className="text-zinc-400 text-xs md:text-sm">Make Up</span>
-              </div>
-            </div>
+            </motion.div>
           </div>
         </motion.div>
 
-        {/* Карточка 2 (Eva) - #474A51 (z-30) */}
+        {/* Карточка 2 (Eva) - Теплое матовое стекло (z-30) */}
         <motion.div 
-          style={{ y: y2, scale: scale2, top: '230px', transformOrigin: 'top center' }}
-          className="absolute w-full px-6 md:px-8 flex justify-center z-30"
+          style={{ y: y2, scale: scale2, top: '190px', transformOrigin: 'top center' }}
+          className="absolute w-full px-5 md:px-8 flex justify-center z-30"
         >
-          <div className="w-full max-w-[1000px] h-[55vh] md:h-[450px] py-10 px-8 md:px-16 bg-[#474A51] rounded-[40px] shadow-2xl flex flex-col items-center justify-center gap-6 md:gap-8 border border-white/10">
-            <p className="text-[clamp(16px,1.8vw,22px)] font-bold text-center leading-relaxed text-white max-w-[850px]">
-              "За що мені подобається працювати з вами? Бо ви профі, в яких завжди є рішення, за те що ви динамічні і шукаєте нові шляхи! За ваші перевірені формули та знання трендів ринку"
-            </p>
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 md:w-14 md:h-14 bg-white rounded-2xl flex items-center justify-center text-lg md:text-xl font-bold shadow-sm">
-                <span className="text-[#FF8C00]">é</span><span className="text-[#00B050]">va</span>
+          <div
+            style={{
+              backgroundColor: 'rgba(252, 251, 249, 0.65)',
+            }}
+            className="w-full max-w-[1000px] h-[58vh] md:h-[450px] py-8 px-6 md:px-16 backdrop-blur-md rounded-[36px] shadow-[0_28px_70px_rgba(28,25,23,0.08),inset_0_1.5px_1px_rgba(255,255,255,0.98),inset_0_-1px_1px_rgba(0,0,0,0.03)] border border-[#E5E2DC]/80 flex flex-col items-center justify-center"
+          >
+            <motion.div
+              style={{ opacity: contentOpacity2, filter: contentBlur2 }}
+              className="flex flex-col items-center justify-center gap-5 md:gap-8 w-full"
+            >
+              <p className="text-[clamp(14px,1.5vw,18px)] font-normal text-center leading-relaxed text-zinc-900 max-w-[850px]">
+                "За що мені подобається працювати з вами? Бо ви профі, в яких завжди є рішення, за те що ви динамічні і шукаєте нові шляхи! За ваші перевірені формули та знання трендів ринку"
+              </p>
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-white rounded-2xl flex items-center justify-center text-lg md:text-xl font-bold shadow-sm border border-zinc-200">
+                  <span className="text-[#FF8C00]">é</span><span className="text-[#00B050]">va</span>
+                </div>
+                <div className="flex flex-col text-left">
+                  <span className="font-bold text-black text-base md:text-lg">Катерина Кучер</span>
+                  <span className="text-zinc-600 text-xs md:text-sm">Eva</span>
+                </div>
               </div>
-              <div className="flex flex-col text-left">
-                <span className="font-bold text-white text-base md:text-lg">Катерина Кучер</span>
-                <span className="text-zinc-400 text-xs md:text-sm">Eva</span>
-              </div>
-            </div>
+            </motion.div>
           </div>
         </motion.div>
 
-        {/* Карточка 3 (Avrora) - #E5E4E2 (Светлая) (z-40) */}
+        {/* Карточка 3 (Avrora) - Теплое матовое стекло (z-40) */}
         <motion.div 
-          style={{ y: y3, top: '270px', transformOrigin: 'top center' }}
-          className="absolute w-full px-6 md:px-8 flex justify-center z-40"
+          style={{ y: y3, top: '224px', transformOrigin: 'top center' }}
+          className="absolute w-full px-5 md:px-8 flex justify-center z-40"
         >
-          <div className="w-full max-w-[1000px] h-[55vh] md:h-[450px] py-10 px-8 md:px-16 bg-[#E5E4E2] rounded-[40px] shadow-2xl flex flex-col items-center justify-center gap-6 md:gap-8">
-            <p className="text-[clamp(16px,1.8vw,22px)] font-bold text-center leading-relaxed text-black max-w-[850px]">
+          <div
+            style={{
+              backgroundColor: 'rgba(252, 251, 249, 0.65)',
+            }}
+            className="w-full max-w-[1000px] h-[58vh] md:h-[450px] py-8 px-6 md:px-16 backdrop-blur-md rounded-[36px] shadow-[0_32px_80px_rgba(28,25,23,0.09),inset_0_1.5px_1px_rgba(255,255,255,0.98),inset_0_-1px_1px_rgba(0,0,0,0.03)] border border-[#E5E2DC]/80 flex flex-col items-center justify-center gap-5 md:gap-8"
+          >
+            <p className="text-[clamp(14px,1.5vw,18px)] font-normal text-center leading-relaxed text-zinc-900 max-w-[850px]">
               "Від імені компанії хочу подякувати вам за співпрацю! Ми цінуємо ваше розуміння ринку і системний підхід до виконання задач. Окремо дякую за те, що ми на одній хвилі в плані розвитку і трендів. Дуже рада мати змогу працювати з вами."
             </p>
             <div className="flex items-center gap-4">
-              <img src="/avrora-logo.jpg" alt="Avrora" className="w-12 h-12 md:w-14 md:h-14 object-cover rounded-2xl shadow-sm" />
+              <img src="/avrora-logo.jpg" alt="Avrora" loading="lazy" className="w-12 h-12 md:w-14 md:h-14 object-cover rounded-2xl shadow-sm border border-zinc-200" />
               <div className="flex flex-col text-left">
                 <span className="font-bold text-black text-base md:text-lg">Дарина Малиновська</span>
-                <span className="text-zinc-700 text-xs md:text-sm">Avrora</span>
+                <span className="text-zinc-600 text-xs md:text-sm">Avrora</span>
               </div>
             </div>
           </div>

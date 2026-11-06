@@ -6,24 +6,30 @@ export const CollageMobile = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const items = [
+    { type: 'image', src: '/night in paris 1.jpeg' },
+    { type: 'image', src: '/03.jpg' },
+    { type: 'image', src: '/Копія _H98A4765.jpg' },
+    { type: 'image', src: '/H98A4391.jpg' },
+    { type: 'image', src: '/dsc08443.jpeg' },
+    { type: 'image', src: '/Копія _H98A3905.jpg' },
+    { type: 'image', src: '/DSC09787.jpeg' },
+    { type: 'image', src: '/img5.jpg' },
+    { type: 'image', src: '/h4.jpg' },
+    { type: 'image', src: '/1_кокос БЕЗ ДАТИ.jpg' },
+    { type: 'image', src: '/hydrasence_horizontal_1789481454129.jpg' },
+    { type: 'image', src: '/DSC00868.jpeg' },
+  ];
+
   const handleCarouselScroll = () => {
     if (!scrollContainerRef.current) return;
     const scrollLeft = scrollContainerRef.current.scrollLeft;
-    const itemWidth = scrollContainerRef.current.scrollWidth / 6;
+    const itemWidth = scrollContainerRef.current.scrollWidth / items.length;
     const newIndex = Math.round(scrollLeft / itemWidth);
-    if (newIndex !== activeIndex && newIndex >= 0 && newIndex < 6) {
+    if (newIndex !== activeIndex && newIndex >= 0 && newIndex < items.length) {
       setActiveIndex(newIndex);
     }
   };
-
-  const items = [
-    { type: 'video', src: '/-P28vNB0ww8gJAHythAA_Dropshot.mp4' },
-    { type: 'image', src: '/carousel_4.jpg' }, 
-    { type: 'image', src: '/carousel_2.jpg' }, 
-    { type: 'image', src: '/carousel_3.jpg' }, 
-    { type: 'image', src: '/carousel_1.png' }, 
-    { type: 'image', src: '/carousel_5.jpg' }, 
-  ];
 
   return (
     <section className="w-full bg-white flex flex-col justify-start relative z-20 pb-2">

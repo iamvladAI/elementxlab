@@ -101,10 +101,21 @@ const founderCharVariants = {
 export default function ContactPage() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isFounderHovered, setIsFounderHovered] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
   const [selectedMethod, setSelectedMethod] = useState("Телефонний дзвінок");
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const founderRef = useRef<HTMLDivElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
   const successCircleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const check = () => setIsMobileView(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -178,6 +189,9 @@ export default function ContactPage() {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
       }
+      if (founderRef.current && !founderRef.current.contains(event.target as Node)) {
+        setIsFounderHovered(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -236,10 +250,23 @@ export default function ContactPage() {
 
       {/* LEFT SIDE (Black Background) */}
       <motion.div 
-        initial={{ clipPath: "polygon(0 0, 0 0, 0 100%, 0 100%)", x: "0%" }}
-        animate={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)", x: submitStatus === 'success' ? "-100%" : "0%" }}
+        key={isMobileView ? "mobile-black-panel" : "desktop-black-panel"}
+        initial={{
+          clipPath: isMobileView
+            ? "polygon(0 0, 100% 0, 100% 0, 0 0)"
+            : "polygon(0 0, 0 0, 0 100%, 0 100%)",
+          x: "0%",
+          y: "0%"
+        }}
+        animate={{
+          clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)",
+          x: submitStatus === 'success' ? (isMobileView ? "0%" : "-100%") : "0%",
+          y: "0%"
+        }}
         transition={{ duration: 0.85, ease: [0.7, 0, 0.3, 1] }}
-        className="relative z-30 w-full md:w-[45%] lg:w-[40%] min-h-[50vh] md:h-screen md:sticky md:top-0 bg-black text-white p-8 pb-8 pt-24 md:pb-16 md:pt-32 lg:pb-24 lg:pt-[110px] md:pr-12 lg:pr-16 md:pl-28 lg:pl-36 overflow-hidden flex flex-col shrink-0 pointer-events-auto"
+        className={`relative z-30 w-full md:w-[45%] lg:w-[40%] min-h-[50vh] md:h-screen md:sticky md:top-0 bg-black text-white p-8 pb-8 pt-24 md:pb-16 md:pt-32 lg:pb-24 lg:pt-[110px] md:pr-12 lg:pr-16 md:pl-28 lg:pl-36 overflow-hidden flex-col shrink-0 pointer-events-auto ${
+          isMobileView && submitStatus === 'success' ? 'hidden md:flex' : 'flex'
+        }`}
       >
         <AnimatePresence mode="wait">
           {submitStatus !== "success" ? (
@@ -308,9 +335,11 @@ export default function ContactPage() {
                 </motion.div>
 
                 <div
+                  ref={founderRef}
                   className="relative inline-flex items-center gap-3 cursor-pointer group"
-                  onMouseEnter={() => setIsFounderHovered(true)}
-                  onMouseLeave={() => setIsFounderHovered(false)}
+                  onMouseEnter={() => { if (!isMobileView) setIsFounderHovered(true); }}
+                  onMouseLeave={() => { if (!isMobileView) setIsFounderHovered(false); }}
+                  onClick={() => setIsFounderHovered((prev) => !prev)}
                 >
                   {/* Всплывающее мини-окошко при наведении */}
                   <AnimatePresence>
@@ -417,15 +446,20 @@ export default function ContactPage() {
                 onChange={(e) => setFormData({...formData, email: e.target.value.replace(/\s/g, '')})}
                 placeholder="example@gmail.com" 
                 autoComplete="email"
-                className={`w-full h-12 pl-5 pr-[210px] text-[15px] text-black rounded-full border ${touched.email && errors.email && formData.email.length > 0 ? 'border-red-500 bg-red-50/50' : 'border-zinc-200 focus:border-black'} outline-none transition-colors placeholder:text-zinc-500`} 
+                className={`w-full h-12 pl-5 pr-5 md:pr-[210px] text-[15px] text-black rounded-full border ${touched.email && errors.email && formData.email.length > 0 ? 'border-red-500 bg-red-50/50' : 'border-zinc-200 focus:border-black'} outline-none transition-colors placeholder:text-zinc-500`} 
               />
-              <div className="absolute right-2 flex gap-1">
+              <div className="hidden md:flex absolute right-2 gap-1">
                 <button type="button" onClick={() => addEmailDomain('@gmail.com')} className="text-[10px] font-medium bg-zinc-100 text-zinc-600 px-2 py-1 rounded-md hover:scale-105 active:scale-95 transition-transform duration-200">@gmail.com</button>
                 <button type="button" onClick={() => addEmailDomain('@ukr.net')} className="text-[10px] font-medium bg-zinc-100 text-zinc-600 px-2 py-1 rounded-md hover:scale-105 active:scale-95 transition-transform duration-200">@ukr.net</button>
                 <button type="button" onClick={() => addEmailDomain('@icloud.com')} className="text-[10px] font-medium bg-zinc-100 text-zinc-600 px-2 py-1 rounded-md hover:scale-105 active:scale-95 transition-transform duration-200">@icloud.com</button>
               </div>
             </div>
-            {touched.email && errors.email && formData.email.length > 0 && <span className="absolute -bottom-3 left-4 text-red-500 text-[11px] whitespace-nowrap">{errors.email}</span>}
+            <div className="flex md:hidden items-center gap-2 mt-0.5 pl-1">
+              <button type="button" onClick={() => addEmailDomain('@gmail.com')} className="text-[12px] font-medium bg-zinc-100 text-zinc-600 px-3 py-1 rounded-full active:scale-95 transition-transform duration-200">@gmail.com</button>
+              <button type="button" onClick={() => addEmailDomain('@ukr.net')} className="text-[12px] font-medium bg-zinc-100 text-zinc-600 px-3 py-1 rounded-full active:scale-95 transition-transform duration-200">@ukr.net</button>
+              <button type="button" onClick={() => addEmailDomain('@icloud.com')} className="text-[12px] font-medium bg-zinc-100 text-zinc-600 px-3 py-1 rounded-full active:scale-95 transition-transform duration-200">@icloud.com</button>
+            </div>
+            {touched.email && errors.email && formData.email.length > 0 && <span className="text-red-500 text-[11px] whitespace-nowrap pl-4 md:pl-0 md:absolute md:-bottom-3 md:left-4">{errors.email}</span>}
           </motion.div>
 
           <motion.div 
@@ -595,8 +629,8 @@ export default function ContactPage() {
               key="success-white-center"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.2 }}
-              className="fixed inset-0 z-20 bg-white flex flex-col items-center justify-center text-center p-6"
+              transition={{ type: "spring", stiffness: 260, damping: 20, delay: isMobileView ? 0 : 0.2 }}
+              className="fixed inset-0 z-40 md:z-20 bg-white flex flex-col items-center justify-center text-center p-6"
             >
               {/* <FlyingBats spawnRef={successCircleRef} /> */}
               <div className="relative z-20 mb-6 flex items-center justify-center">

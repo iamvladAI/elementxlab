@@ -25,9 +25,13 @@ export const RoadmapMobile = ({ blackBlockRef, phaseOffset }: { blackBlockRef: R
     restDelta: 0.001
   });
 
+  // Завершаем прокрутку всех 6 этапов к 86% высоты секции, чтобы на последних 14%
+  // 06 «Виготовлення» уже спокойно стоял на месте перед появлением блока Сертификации GMP.
+  const stageProgress = useTransform(smoothProgress, [0, 0.86], [0, 1.08]);
+
   const [activeStep, setActiveStep] = useState(-1);
 
-  useMotionValueEvent(smoothProgress, "change", (p) => {
+  useMotionValueEvent(stageProgress, "change", (p) => {
     let current = -1;
     for (let i = 0; i < roadmapStages.length; i++) {
       const center = 1 / 3 + i * (2 / 15);
@@ -44,13 +48,13 @@ export const RoadmapMobile = ({ blackBlockRef, phaseOffset }: { blackBlockRef: R
   // Заголовок ждет, пока черный блок полностью доедет до верха экрана
   const pinPoint = 1 / 3;
 
-  const headingY = useTransform(smoothProgress, (p) => {
+  const headingY = useTransform(stageProgress, (p) => {
      if (p <= pinPoint) return 0; 
      const diff = p - pinPoint;
      return -diff * 1200; 
   });
 
-  const headingOpacity = useTransform(smoothProgress, (p) => {
+  const headingOpacity = useTransform(stageProgress, (p) => {
      // Изначально заголовок прозрачный
      if (p < 0.11) return 0;
      
@@ -74,7 +78,7 @@ export const RoadmapMobile = ({ blackBlockRef, phaseOffset }: { blackBlockRef: R
   const isLightMode = true;
 
   return (
-    <section className="w-full pt-8">
+    <section className="w-full pt-8 overflow-x-clip">
 
       {/* Липкий заголовок */}
       <motion.div 
@@ -89,8 +93,8 @@ export const RoadmapMobile = ({ blackBlockRef, phaseOffset }: { blackBlockRef: R
       {/* Фон секции */}
       <div ref={blackBlockRef} className={`w-full -mt-[48px] ${isLightMode ? 'bg-white' : 'bg-black'} h-[300vh] relative`}>
         
-        {/* Залипающий экран внутри черного блока. */}
-        <div className="sticky top-0 w-full h-screen overflow-hidden">
+        {/* Залипающий экран внутри секции: высота 62vh с overflow-visible, чтобы следующий блок шел сразу под 06 этапом без рывков */}
+        <div className="sticky top-0 w-full h-[62vh] md:h-screen overflow-visible">
 
            
            {/* ЧАСТЬ 2: ФОНОВЫЕ ВОЛНЫ (Замороженные на черном фоне) */}
@@ -123,7 +127,7 @@ export const RoadmapMobile = ({ blackBlockRef, phaseOffset }: { blackBlockRef: R
                    key={stage.num} 
                    stage={stage} 
                    index={idx}
-                   progress={smoothProgress} 
+                   progress={stageProgress} 
                  />
               ))}
            </div>
@@ -154,11 +158,12 @@ const StageNode = ({
   // Шаг 2/15 означает, что 6-й пункт достигнет максимума (center = 1.0) ровно когда блок начнет отлипать.
   // Это возвращает 100% непрозрачность и белый текст 6-му пункту.
   const center = 1 / 3 + index * (2 / 15);
+  const isLastStage = index === roadmapStages.length - 1;
 
-  // Движение по оси Y
+  // Движение по оси Y (последний 6-й этап фиксируется в центре и не улетает вверх при скролле дальше)
   const y = useTransform(progress, (p) => {
-    const diff = p - center;
-    // Убрали смещение. Теперь активный пункт будет СТРОГО по центру экрана.
+    const effectiveP = isLastStage ? Math.min(p, center) : p;
+    const diff = effectiveP - center;
     return -diff * 1200; 
   });
 
@@ -167,7 +172,8 @@ const StageNode = ({
 
   // Базовый серый пункт
   const opacity = useTransform(progress, (p) => {
-    const diff = Math.abs(p - center);
+    const effectiveP = isLastStage ? Math.min(p, center) : p;
+    const diff = Math.abs(effectiveP - center);
     if (diff > 0.20) return 0; 
     if (diff > 0.15) return 1 - ((diff - 0.15) / 0.05); 
     return 1;
@@ -175,14 +181,16 @@ const StageNode = ({
 
   // Активный текст 
   const activeOpacity = useTransform(progress, (p) => {
-    const diff = Math.abs(p - center);
+    const effectiveP = isLastStage ? Math.min(p, center) : p;
+    const diff = Math.abs(effectiveP - center);
     if (diff > 0.12) return 0; 
     return 1 - (diff / 0.12);
   });
 
   // Описание (справа)
   const descOpacity = useTransform(progress, (p) => {
-    const diff = Math.abs(p - center);
+    const effectiveP = isLastStage ? Math.min(p, center) : p;
+    const diff = Math.abs(effectiveP - center);
     if (diff <= 0.08) return 1; 
     if (diff > 0.15) return 0;
     return 1 - ((diff - 0.08) / 0.07);
@@ -191,7 +199,7 @@ const StageNode = ({
   return (
     <motion.div 
       style={{ y, opacity }}
-      className="absolute top-1/2 left-0 right-0 px-6 md:px-8 w-full"
+      className="absolute top-[64%] md:top-1/2 left-0 right-0 px-6 md:px-8 w-full"
     >
       <div className="-translate-y-1/2 flex flex-col md:flex-row items-start md:items-center justify-start gap-4 md:gap-12 w-full">
         

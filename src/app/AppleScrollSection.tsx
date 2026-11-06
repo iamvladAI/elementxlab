@@ -115,8 +115,14 @@ function loadVideoBlob(src: string): Promise<string> {
 // не могут наехать друг на друга: следующая появляется снизу только когда предыдущая уходит вверх.
 // Лента не останавливается полностью — у каждой баночки в центре лишь мягко замедляется (~45% скорости).
 const BOTTLE_GAP = 92; // vh между центрами соседних баночек (сближены для гармоничного перехода без пустоты)
-// Моменты скролла (earlyScroll), когда баночка i ровно в центре экрана
-const CENTER_KNOTS = [0.18, 0.455, 0.73, 1.0];
+// Моменты скролла (earlyScroll), когда баночка i ровно в центре экрана.
+const DESKTOP_CENTER_KNOTS = [0.18, 0.455, 0.73, 1.0];
+const MOBILE_CENTER_KNOTS = [0.16, 0.39, 0.62, 0.84];
+
+const getCenterKnots = () =>
+  typeof window !== 'undefined' && window.innerWidth < 768
+    ? MOBILE_CENTER_KNOTS
+    : DESKTOP_CENTER_KNOTS;
 
 const easeSoft = (t: number) => {
   const c = Math.max(0, Math.min(1, t));
@@ -126,15 +132,16 @@ const easeSoft = (t: number) => {
 
 // Позиция ленты (в vh): 0 = первая баночка в центре, BOTTLE_GAP * i = баночка i в центре
 const conveyorAt = (p: number) => {
+  const knots = getCenterKnots();
   if (p <= 0) return -10;
-  if (p < CENTER_KNOTS[0]) return -10 + 10 * easeSoft(p / CENTER_KNOTS[0]);
-  for (let i = 1; i < CENTER_KNOTS.length; i++) {
-    if (p < CENTER_KNOTS[i]) {
-      const t = (p - CENTER_KNOTS[i - 1]) / (CENTER_KNOTS[i] - CENTER_KNOTS[i - 1]);
+  if (p < knots[0]) return -10 + 10 * easeSoft(p / knots[0]);
+  for (let i = 1; i < knots.length; i++) {
+    if (p < knots[i]) {
+      const t = (p - knots[i - 1]) / (knots[i] - knots[i - 1]);
       return BOTTLE_GAP * (i - 1) + BOTTLE_GAP * easeSoft(t);
     }
   }
-  return BOTTLE_GAP * (CENTER_KNOTS.length - 1);
+  return BOTTLE_GAP * (knots.length - 1);
 };
 
 // Положение баночки i на экране (vh): >0 ниже центра, <0 выше центра
@@ -184,8 +191,8 @@ export default function AppleScrollSection({ appleY = 0 }: AppleScrollSectionPro
   });
 
   return (
-    <div ref={containerRef} className="relative w-full h-[430vh] bg-transparent z-20">
-      <div className="sticky top-0 w-full h-screen overflow-hidden flex items-center justify-center">
+    <div ref={containerRef} className="relative w-full h-[430vh] bg-transparent z-20 overflow-x-clip">
+      <div className="sticky top-0 w-full h-[72vh] md:h-screen overflow-visible md:overflow-hidden flex items-center justify-center">
         
         {/* ЗАГОЛОВОК 500+ ФОРМУЛ (на мобилке ниже логотипа top-[86px], на десктопе на линии логотипа md:top-10 h-12) */}
         <motion.div
@@ -291,9 +298,10 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, rawScroll, index 
   const lastFrameRef = useRef<number>(-1);
 
   const computeTargetFrame = (p: number) => {
+    const knots = getCenterKnots();
     let t: number;
     if (index === 0) {
-      t = p / CENTER_KNOTS[0];
+      t = p / knots[0];
     } else {
       const y = bottleY(p, index);
       t = (80 - y) / 80;
@@ -397,7 +405,7 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, rawScroll, index 
 
   return (
     <motion.div 
-      className="absolute inset-0 flex flex-col-reverse md:flex-row items-center justify-center px-5 md:px-10 pointer-events-none"
+      className="absolute inset-0 pt-[14vh] md:pt-0 flex flex-col-reverse md:flex-row items-center justify-center px-5 md:px-10 pointer-events-none"
     >
       {/* ЛЕВАЯ ЧАСТЬ (на мобилке — снизу): Текст */}
       <motion.div 
@@ -431,7 +439,7 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, rawScroll, index 
           muted
           playsInline
           preload="auto"
-          className={`w-[100%] md:w-[140%] max-w-[390px] md:max-w-[800px] xl:max-w-[1000px] origin-center object-contain mix-blend-multiply translate-x-0 md:translate-x-[-10%] ${
+          className={`w-[100%] md:w-[140%] max-w-[390px] md:max-w-[800px] xl:max-w-[1000px] md:max-h-[70vh] origin-center object-contain mix-blend-multiply translate-x-0 md:translate-x-[-10%] ${
             product.id === 'face'
               ? 'scale-[1.28] md:scale-[1.12]'
               : product.id === 'perfume'

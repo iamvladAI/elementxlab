@@ -385,7 +385,7 @@ export default function Home() {
 
 
       {/* БРЕНДЫ В СТОЛБИК НА МОБИЛКЕ */}
-      <section className="w-full bg-white relative z-20 flex flex-col -mt-[28vh] pt-0 pb-6">
+      <section className="w-full bg-white relative z-20 flex flex-col mt-0 pt-0 pb-6">
         
         <div className="w-full flex justify-center z-30 mb-5 px-5">
           <h2 className="text-[clamp(28px,4vw,42px)] font-bold tracking-tight text-center text-black">
@@ -496,7 +496,7 @@ export default function Home() {
       <RoadmapMobile blackBlockRef={roadmapRef} phaseOffset={phaseOffset} />
 
       {/* 2) БЛОК "О ПРОИЗВОДСТВЕ" + ЕДИНАЯ ВОЛНА */}
-      <div className="w-full relative -mt-[34vh]">
+      <div className="w-full relative mt-0">
         
         {/* ЕДИНАЯ ВОЛНА СЛЕВА ДЛЯ ВСЕХ НИЖНИХ СЕКЦИЙ */}
         <div className="absolute top-0 bottom-0 left-[-30px] md:left-[-50px] lg:left-[-70px] w-[350px] pointer-events-none mix-blend-difference hidden md:block z-10">
@@ -523,10 +523,10 @@ export default function Home() {
             
             {/* Title & Text */}
             <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true, amount: 0.25 }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
               className="w-full order-1 flex flex-col"
             >
               <h2 className="text-[clamp(28px,3vw,36px)] font-bold tracking-tight text-black mb-4">
@@ -540,10 +540,10 @@ export default function Home() {
             {/* Certificate (Mobile: middle, Desktop: right column) */}
             <div className="w-full flex justify-center md:justify-end order-2 md:col-start-2 md:row-span-2">
               <motion.img 
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
                 viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
+                transition={{ duration: 0.7, ease: "easeOut" }}
                 src="https://cdn.prod.website-files.com/69b2957a534625d1beb1cce7/69c4f72e83b4b8e066fcd250_GMP%20Certificate.jpg" 
                 alt="GMP Certificate" 
                 className="w-full max-w-[400px] md:max-w-full rounded-2xl shadow-xl border border-black/5" 
@@ -552,10 +552,10 @@ export default function Home() {
 
             {/* Accordion (Mobile: bottom, Desktop: left column) */}
             <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
               viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
+              transition={{ duration: 0.7, ease: "easeOut", delay: 0.1 }}
               className="w-full flex flex-col gap-2 md:gap-3 order-3 md:col-start-1 md:mt-8"
             >
                  <AccordionItem title="Нотифікація продуктів" content="Надаємо повний пакет документів відповідно до технічного регламенту для легальної реалізації продукції." />

@@ -514,7 +514,7 @@ export default function Home() {
                   loading="eager"
                   decoding="sync"
                   onLoad={() => setHeroReady(true)}
-                  className="w-full h-full object-cover object-bottom md:object-fill select-none pointer-events-none"
+                  className="w-full h-full object-cover object-center select-none pointer-events-none"
                 />
               )}
             </motion.div>

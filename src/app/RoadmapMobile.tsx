@@ -13,10 +13,11 @@ const roadmapStages = [
 
 export const RoadmapMobile = ({ blackBlockRef, phaseOffset }: { blackBlockRef: React.RefObject<HTMLDivElement>, phaseOffset: number }) => {
   
-  // НАЧИНАЕМ ОТСЛЕЖИВАТЬ СКРОЛЛ РАНЬШЕ!
+  // Отслеживаем скролл ровно до момента отлипания 62vh-контейнера ("end 62%"),
+  // чтобы 06 этап двигался синхронно с выезжающей снизу Сертификацией GMP без единой остановки.
   const { scrollYProgress } = useScroll({
     target: blackBlockRef,
-    offset: ["start 100%", "end end"] 
+    offset: ["start 100%", "end 62%"] 
   });
 
   const smoothProgress = useSpring(scrollYProgress, {
@@ -25,13 +26,9 @@ export const RoadmapMobile = ({ blackBlockRef, phaseOffset }: { blackBlockRef: R
     restDelta: 0.001
   });
 
-  // Завершаем прокрутку всех 6 этапов к 86% высоты секции, чтобы на последних 14%
-  // 06 «Виготовлення» уже спокойно стоял на месте перед появлением блока Сертификации GMP.
-  const stageProgress = useTransform(smoothProgress, [0, 0.86], [0, 1.08]);
-
   const [activeStep, setActiveStep] = useState(-1);
 
-  useMotionValueEvent(stageProgress, "change", (p) => {
+  useMotionValueEvent(smoothProgress, "change", (p) => {
     let current = -1;
     for (let i = 0; i < roadmapStages.length; i++) {
       const center = 1 / 3 + i * (2 / 15);
@@ -48,13 +45,13 @@ export const RoadmapMobile = ({ blackBlockRef, phaseOffset }: { blackBlockRef: R
   // Заголовок ждет, пока черный блок полностью доедет до верха экрана
   const pinPoint = 1 / 3;
 
-  const headingY = useTransform(stageProgress, (p) => {
+  const headingY = useTransform(smoothProgress, (p) => {
      if (p <= pinPoint) return 0; 
      const diff = p - pinPoint;
-     return -diff * 1200; 
+     return -diff * 1600; 
   });
 
-  const headingOpacity = useTransform(stageProgress, (p) => {
+  const headingOpacity = useTransform(smoothProgress, (p) => {
      // Изначально заголовок прозрачный
      if (p < 0.11) return 0;
      
@@ -127,7 +124,7 @@ export const RoadmapMobile = ({ blackBlockRef, phaseOffset }: { blackBlockRef: R
                    key={stage.num} 
                    stage={stage} 
                    index={idx}
-                   progress={stageProgress} 
+                   progress={smoothProgress} 
                  />
               ))}
            </div>
@@ -158,13 +155,12 @@ const StageNode = ({
   // Шаг 2/15 означает, что 6-й пункт достигнет максимума (center = 1.0) ровно когда блок начнет отлипать.
   // Это возвращает 100% непрозрачность и белый текст 6-му пункту.
   const center = 1 / 3 + index * (2 / 15);
-  const isLastStage = index === roadmapStages.length - 1;
 
-  // Движение по оси Y (последний 6-й этап фиксируется в центре и не улетает вверх при скролле дальше)
+  // Движение по оси Y со скоростью скролла страницы (~1800px на весь ход секции),
+  // чтобы 06 этап и выезжающая снизу Сертификация GMP двигались с абсолютно одинаковой скоростью без заморозки.
   const y = useTransform(progress, (p) => {
-    const effectiveP = isLastStage ? Math.min(p, center) : p;
-    const diff = effectiveP - center;
-    return -diff * 1200; 
+    const diff = p - center;
+    return -diff * 1800; 
   });
 
   // Переменная для быстрого переключения Светлой/Темной темы (меняем на false, чтобы вернуть как было)
@@ -172,8 +168,7 @@ const StageNode = ({
 
   // Базовый серый пункт
   const opacity = useTransform(progress, (p) => {
-    const effectiveP = isLastStage ? Math.min(p, center) : p;
-    const diff = Math.abs(effectiveP - center);
+    const diff = Math.abs(p - center);
     if (diff > 0.20) return 0; 
     if (diff > 0.15) return 1 - ((diff - 0.15) / 0.05); 
     return 1;
@@ -181,16 +176,14 @@ const StageNode = ({
 
   // Активный текст 
   const activeOpacity = useTransform(progress, (p) => {
-    const effectiveP = isLastStage ? Math.min(p, center) : p;
-    const diff = Math.abs(effectiveP - center);
+    const diff = Math.abs(p - center);
     if (diff > 0.12) return 0; 
     return 1 - (diff / 0.12);
   });
 
   // Описание (справа)
   const descOpacity = useTransform(progress, (p) => {
-    const effectiveP = isLastStage ? Math.min(p, center) : p;
-    const diff = Math.abs(effectiveP - center);
+    const diff = Math.abs(p - center);
     if (diff <= 0.08) return 1; 
     if (diff > 0.15) return 0;
     return 1 - ((diff - 0.08) / 0.07);

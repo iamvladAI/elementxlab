@@ -116,13 +116,7 @@ function loadVideoBlob(src: string): Promise<string> {
 // Лента не останавливается полностью — у каждой баночки в центре лишь мягко замедляется (~45% скорости).
 const BOTTLE_GAP = 92; // vh между центрами соседних баночек (сближены для гармоничного перехода без пустоты)
 // Моменты скролла (earlyScroll), когда баночка i ровно в центре экрана.
-const DESKTOP_CENTER_KNOTS = [0.18, 0.455, 0.73, 1.0];
-const MOBILE_CENTER_KNOTS = [0.16, 0.39, 0.62, 0.84];
-
-const getCenterKnots = () =>
-  typeof window !== 'undefined' && window.innerWidth < 768
-    ? MOBILE_CENTER_KNOTS
-    : DESKTOP_CENTER_KNOTS;
+const CENTER_KNOTS = [0.18, 0.455, 0.73, 1.0];
 
 const easeSoft = (t: number) => {
   const c = Math.max(0, Math.min(1, t));
@@ -132,16 +126,15 @@ const easeSoft = (t: number) => {
 
 // Позиция ленты (в vh): 0 = первая баночка в центре, BOTTLE_GAP * i = баночка i в центре
 const conveyorAt = (p: number) => {
-  const knots = getCenterKnots();
   if (p <= 0) return -10;
-  if (p < knots[0]) return -10 + 10 * easeSoft(p / knots[0]);
-  for (let i = 1; i < knots.length; i++) {
-    if (p < knots[i]) {
-      const t = (p - knots[i - 1]) / (knots[i] - knots[i - 1]);
+  if (p < CENTER_KNOTS[0]) return -10 + 10 * easeSoft(p / CENTER_KNOTS[0]);
+  for (let i = 1; i < CENTER_KNOTS.length; i++) {
+    if (p < CENTER_KNOTS[i]) {
+      const t = (p - CENTER_KNOTS[i - 1]) / (CENTER_KNOTS[i] - CENTER_KNOTS[i - 1]);
       return BOTTLE_GAP * (i - 1) + BOTTLE_GAP * easeSoft(t);
     }
   }
-  return BOTTLE_GAP * (knots.length - 1);
+  return BOTTLE_GAP * (CENTER_KNOTS.length - 1);
 };
 
 // Положение баночки i на экране (vh): >0 ниже центра, <0 выше центра
@@ -166,11 +159,20 @@ export default function AppleScrollSection({ appleY = 0 }: AppleScrollSectionPro
     offset: ["start start", "end end"]
   });
 
-  // НОВЫЙ СКРОЛЛ: Начинает отсчет за 40% до того, как секция прилипнет к верху экрана
-  const { scrollYProgress: earlyScroll } = useScroll({
+  // На десктопе секция отлипает на "end end" (100vh), а на мобилке липкий контейнер h-[72vh] отлипает ровно на "end 72%".
+  // Поэтому на мобилке доводим прогресс 4-й баночки («Парфуми») ровно до "end 72%", чтобы она шла вверх
+  // одновременно с «Наші бренди» с одной и той же скоростью без заморозки.
+  const { scrollYProgress: earlyScrollDesktop } = useScroll({
     target: containerRef,
     offset: ["start 40%", "end end"]
   });
+
+  const { scrollYProgress: earlyScrollMobile } = useScroll({
+    target: containerRef,
+    offset: ["start 40%", "end 72%"]
+  });
+
+  const earlyScroll = typeof window !== 'undefined' && window.innerWidth < 768 ? earlyScrollMobile : earlyScrollDesktop;
 
   // ДОБАВЛЯЕМ ОТЗЫВЧИВУЮ АМОРТИЗАЦИЮ (СГЛАЖИВАНИЕ)
   const springConfig = { stiffness: 260, damping: 35, mass: 0.35, restDelta: 0.001 };
@@ -298,10 +300,9 @@ function ProductLayer({ product, scrollYProgress, earlyScroll, rawScroll, index 
   const lastFrameRef = useRef<number>(-1);
 
   const computeTargetFrame = (p: number) => {
-    const knots = getCenterKnots();
     let t: number;
     if (index === 0) {
-      t = p / knots[0];
+      t = p / CENTER_KNOTS[0];
     } else {
       const y = bottleY(p, index);
       t = (80 - y) / 80;
